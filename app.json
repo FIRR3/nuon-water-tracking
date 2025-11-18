@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "nuon-water-tracking",
+    "name": "Nuon Water Tracking",
     "slug": "nuon-water-tracking",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -22,6 +22,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
+      "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
