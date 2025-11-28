@@ -1,12 +1,12 @@
+import { colors } from '@/constants/colors';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React, { useEffect, useState } from 'react';
 import { LayoutChangeEvent, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import TabBarButton from './TabBarButton';
-import { colors } from '@/constants/colors';
 
 export function TabBar({ state, descriptors, navigation } : BottomTabBarProps) {
-  const [dimensions, setDimensions] = useState({height: 20, width: 100})
+  const [dimensions, setDimensions] = useState({height: 20, width: 270})
 
   const buttonWidth = dimensions.width / state.routes.length;
 
@@ -19,13 +19,25 @@ export function TabBar({ state, descriptors, navigation } : BottomTabBarProps) {
     tabPositionX.value = dimensions.width / state.routes.length;
   };
 
-  const tabPositionX = useSharedValue(0);
+  const tabPositionX = useSharedValue(90);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{translateX: tabPositionX.value}]
     }
   });
+
+  // Sliding focus background animation for TabBarButtons
+  useEffect(() => {
+    tabPositionX.value = withSpring(buttonWidth * state.index, {
+      damping: 12,      // lower = more bounce
+      stiffness: 80,   // lower = softer spring
+      mass: 1,          // higher = slower bounce
+      overshootClamping: false,
+      restDisplacementThreshold: 0.01,
+      restSpeedThreshold: 0.01,
+    });
+  }, [state.index]);
 
   return (
     <View
@@ -58,15 +70,6 @@ export function TabBar({ state, descriptors, navigation } : BottomTabBarProps) {
         const isFocused = state.index === index;
 
         const onPress = () => {
-          tabPositionX.value = withSpring(buttonWidth * index, {
-            damping: 10,      // lower = more bounce
-            stiffness: 100,   // lower = softer spring
-            mass: 1,          // higher = slower bounce
-            overshootClamping: false,
-            restDisplacementThreshold: 0.01,
-            restSpeedThreshold: 0.01,
-          });
-          
           const event = navigation.emit({
             type: 'tabPress',
             target: route.key,
