@@ -2,10 +2,12 @@ import { colors } from "@/constants/colors";
 import {
   Canvas,
   Group,
+  LinearGradient,
   Rect,
   Skia,
   Text,
-  useFont
+  useFont,
+  vec,
 } from "@shopify/react-native-skia";
 import { area, scaleLinear } from "d3";
 import React, { useEffect } from "react";
@@ -24,10 +26,9 @@ type Props = {
 };
 
 export const LiquidProgressGauge = ({ width, height, value }: Props) => {
-  
   // Rectangle dimensions
   // Width and Height come as props
-  const borderThickness = Math.max(2, Math.min(width, height) * 0.05);
+  const borderThickness = 0;
   const fillRectMargin = borderThickness;
   const fillRectWidth = width - fillRectMargin * 2;
   const fillRectHeight = height - fillRectMargin * 2;
@@ -41,14 +42,17 @@ export const LiquidProgressGauge = ({ width, height, value }: Props) => {
   const waveClipCount = waveCount + 1;
   const waveLength = fillRectWidth / waveCount;
   const waveClipWidth = waveLength * waveClipCount;
-  const waveHeight = fillRectHeight * 0.08;
+  const waveHeight = fillRectHeight * 0.05;
 
   // Font
-  const fontSize = Math.min(width, height) / 3;
-  const font = useFont(require("../assets/fonts/Roboto-Bold.ttf"), fontSize);
+  const fontSize = Math.min(width, height) / 5;
+  const font = useFont(
+    require("../assets/fonts/Poppins/Poppins-SemiBold.ttf"),
+    fontSize
+  );
   const textWidth = font?.getTextWidth(`${value}`) ?? 0;
   const textTranslateX = width / 2 - textWidth / 2;
-  const textTranslateY = height / 2 + fontSize / 3;
+  const textTranslateY = height / 2;
   const textTransform = [{ translateY: textTranslateY }];
 
   // Data for building the clip wave area for rectangle
@@ -67,7 +71,8 @@ export const LiquidProgressGauge = ({ width, height, value }: Props) => {
     })
     .y0(function (d) {
       return (
-        fillRectHeight * (1 - fillPercent) + waveScaleY(Math.sin(d[1] * 2 * Math.PI))
+        fillRectHeight * (1 - fillPercent) +
+        waveScaleY(Math.sin(d[1] * 2 * Math.PI))
       );
     })
     .y1(function (_d) {
@@ -88,12 +93,12 @@ export const LiquidProgressGauge = ({ width, height, value }: Props) => {
   }, [value]);
 
   const text = useDerivedValue(() => {
-    return `${textValue.value.toFixed(0)}`;
+    return `${textValue.value.toFixed(0)}ml`;
   }, [textValue]);
 
   useEffect(() => {
     translateYPercent.value = withTiming(fillPercent, {
-      duration: 1000,
+      duration: 5000,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fillPercent]);
@@ -104,7 +109,7 @@ export const LiquidProgressGauge = ({ width, height, value }: Props) => {
         duration: 9000,
         easing: Easing.linear,
       }),
-      -1,
+      -1
     );
   }, []);
 
@@ -113,7 +118,7 @@ export const LiquidProgressGauge = ({ width, height, value }: Props) => {
     const transformMatrix = Skia.Matrix();
     transformMatrix.translate(
       fillRectMargin - waveLength * translateXAnimated.value,
-      fillRectMargin,
+      fillRectMargin
     );
     clipP.transform(transformMatrix);
     return clipP;
@@ -137,7 +142,7 @@ export const LiquidProgressGauge = ({ width, height, value }: Props) => {
         y={fontSize}
         text={text}
         font={font}
-        color="#045681"
+        color={colors.primary}
         transform={textTransform}
       />
 
@@ -147,15 +152,20 @@ export const LiquidProgressGauge = ({ width, height, value }: Props) => {
           y={fillRectMargin}
           width={fillRectWidth}
           height={fillRectHeight}
-          color={colors.accent}
-        />
+        >
+          <LinearGradient
+            start={vec(0, 0)}
+            end={vec(0, fillRectHeight)}
+            colors={["hsl(221, 91%, 58%)", "hsl(208, 92%, 62%)"]}
+          />
+        </Rect>
         {/* Text under the wave */}
         <Text
           x={textTranslateX}
           y={fontSize}
           text={text}
           font={font}
-          color="#A4DBf8"
+          color="#FFF"
           transform={textTransform}
         />
       </Group>

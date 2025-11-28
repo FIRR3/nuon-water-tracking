@@ -1,16 +1,20 @@
-import { colors } from '@/constants/colors';
-import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import React, { useEffect, useState } from 'react';
-import { LayoutChangeEvent, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import TabBarButton from './TabBarButton';
+import { colors } from "@/constants/colors";
+import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import React, { useEffect, useState } from "react";
+import { LayoutChangeEvent, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
+import TabBarButton from "./TabBarButton";
 
-export function TabBar({ state, descriptors, navigation } : BottomTabBarProps) {
-  const [dimensions, setDimensions] = useState({height: 20, width: 270})
+export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const [dimensions, setDimensions] = useState({ height: 20, width: 270 });
 
   const buttonWidth = dimensions.width / state.routes.length;
 
-  const onTabbarLayout = (e:LayoutChangeEvent) => {
+  const onTabbarLayout = (e: LayoutChangeEvent) => {
     setDimensions({
       height: e.nativeEvent.layout.height,
       width: e.nativeEvent.layout.width,
@@ -23,16 +27,16 @@ export function TabBar({ state, descriptors, navigation } : BottomTabBarProps) {
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{translateX: tabPositionX.value}]
-    }
+      transform: [{ translateX: tabPositionX.value }],
+    };
   });
 
   // Sliding focus background animation for TabBarButtons
   useEffect(() => {
     tabPositionX.value = withSpring(buttonWidth * state.index, {
-      damping: 12,      // lower = more bounce
-      stiffness: 80,   // lower = softer spring
-      mass: 1,          // higher = slower bounce
+      damping: 10, // lower = more bounce
+      stiffness: 100, // lower = softer spring
+      mass: 1, // higher = slower bounce
       overshootClamping: false,
       restDisplacementThreshold: 0.01,
       restSpeedThreshold: 0.01,
@@ -42,22 +46,27 @@ export function TabBar({ state, descriptors, navigation } : BottomTabBarProps) {
   return (
     <View
       onLayout={onTabbarLayout}
-      className='absolute bottom-[50px] flex-row justify-between items-center bg-white mx-[80px] py-[15px] rounded-[35px]'
+      className="absolute bottom-[50px] flex-row justify-between items-center bg-white mx-[60px] py-[15px] rounded-[35px]"
       style={{
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 10},
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
         shadowRadius: 10,
-        shadowOpacity: 0.1
+        shadowOpacity: 0.1,
       }}
     >
-      <Animated.View style={[animatedStyle, {
-        position: 'absolute',
-        backgroundColor: colors.accent,
-        borderRadius: 30,
-        marginHorizontal: 12,
-        height: dimensions.height - 15,
-        width: buttonWidth - 25
-      }]} />
+      <Animated.View
+        style={[
+          animatedStyle,
+          {
+            position: "absolute",
+            backgroundColor: colors.accent,
+            borderRadius: 30,
+            marginHorizontal: 12,
+            height: dimensions.height - 15,
+            width: buttonWidth - 25,
+          },
+        ]}
+      />
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
         const label =
@@ -71,7 +80,7 @@ export function TabBar({ state, descriptors, navigation } : BottomTabBarProps) {
 
         const onPress = () => {
           const event = navigation.emit({
-            type: 'tabPress',
+            type: "tabPress",
             target: route.key,
             canPreventDefault: true,
           });
@@ -83,7 +92,7 @@ export function TabBar({ state, descriptors, navigation } : BottomTabBarProps) {
 
         const onLongPress = () => {
           navigation.emit({
-            type: 'tabLongPress',
+            type: "tabLongPress",
             target: route.key,
           });
         };
@@ -95,7 +104,7 @@ export function TabBar({ state, descriptors, navigation } : BottomTabBarProps) {
             onLongPress={onLongPress}
             isFocused={isFocused}
             routeName={route.name}
-            color={ isFocused ? "#FFF" : "#222" }
+            color={isFocused ? "#FFF" : "#222"}
             label={label}
           />
         );
