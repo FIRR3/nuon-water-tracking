@@ -1,4 +1,4 @@
-import { colors } from "@/constants/colors";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React, { useEffect, useState } from "react";
 import { LayoutChangeEvent, View } from "react-native";
@@ -10,6 +10,9 @@ import Animated, {
 import TabBarButton from "./TabBarButton";
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+
+  const colors = useThemeColors();
+
   const [dimensions, setDimensions] = useState({ height: 20, width: 270 });
 
   const buttonWidth = dimensions.width / state.routes.length;
@@ -46,7 +49,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   return (
     <View
       onLayout={onTabbarLayout}
-      className="absolute bottom-[50px] flex-row justify-between items-center bg-white mx-[60px] py-[15px] rounded-[35px]"
+      className="absolute bottom-[50px] flex-row justify-between items-center bg-white dark:bg-dark-secondary mx-[60px] py-[15px] rounded-[35px]"
       style={{
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 10 },
@@ -104,7 +107,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             onLongPress={onLongPress}
             isFocused={isFocused}
             routeName={route.name}
-            color={isFocused ? "#FFF" : "#222"}
+            color={isFocused ? colors.white : colors.primary}
             label={label}
           />
         );

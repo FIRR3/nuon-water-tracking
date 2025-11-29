@@ -1,17 +1,12 @@
-import React from 'react'
-import { Text, View } from 'react-native'
+import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
+import React from 'react';
+import { Text } from 'react-native';
 
 const Settings = () => {
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
+    <ScreenBackgroundWrapper style={{ justifyContent: "center", alignItems: "center" }}>
       <Text className='text-5xl'>Settings</Text>
-    </View>
+    </ScreenBackgroundWrapper>
   )
 }
 

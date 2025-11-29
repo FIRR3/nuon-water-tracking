@@ -1,5 +1,5 @@
-import { colors } from '@/constants/colors';
 import { icon } from '@/constants/icon';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { PlatformPressable } from '@react-navigation/elements';
 import React, { useEffect } from 'react';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -13,6 +13,7 @@ const TabBarButton = ({ onPress, onLongPress, isFocused, routeName, color, label
   label: string
 }) => {
 
+  const colors = useThemeColors();
   const scale = useSharedValue(0);
 
   useEffect(() => {
@@ -52,10 +53,10 @@ const TabBarButton = ({ onPress, onLongPress, isFocused, routeName, color, label
     >
       <Animated.View style={animatedIconStyle}>
         {icon[routeName]({
-          color: isFocused ? "#FFF" : "#222"
+          color: isFocused ? colors.white : colors.primary
         })}
       </Animated.View>
-      <Animated.Text style={[{ color: isFocused ? colors.accent : "#222", fontSize: 12 }, animatedTextStyle]}>
+      <Animated.Text style={[{ color: isFocused ? colors.accent : colors.primary, fontSize: 12 }, animatedTextStyle]}>
         {label}
       </Animated.Text>
     </PlatformPressable>

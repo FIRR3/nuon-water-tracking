@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 
-const { colors } = require('./constants/colors');
+const { colors } = require('./constants/nativeWind-colors')
 
 module.exports = {
   // NOTE: Update this to include the paths to all files that contain Nativewind classes.
