@@ -3,11 +3,12 @@ import {
   Canvas,
   Group,
   LinearGradient,
+  Path,
   Rect,
   Skia,
   Text,
   useFont,
-  vec,
+  vec
 } from "@shopify/react-native-skia";
 import { area, scaleLinear } from "d3";
 import React, { useEffect } from "react";
@@ -23,10 +24,11 @@ type Props = {
   width: number;
   height: number;
   value: number;
+  userName: string;
+  onDropletPress?: () => void;
 };
 
-export const LiquidProgressGauge = ({ width, height, value }: Props) => {
-
+export const LiquidProgressGauge = ({ width, height, value, userName, onDropletPress }: Props) => {
   const colors = useThemeColors();
 
   // Rectangle dimensions
@@ -40,6 +42,46 @@ export const LiquidProgressGauge = ({ width, height, value }: Props) => {
   const maxValue = 2400;
   const fillPercent = Math.max(minValue, Math.min(maxValue, value)) / maxValue;
 
+  // Font
+  const fontSize = Math.min(width, height) / 5;
+  const font = useFont(
+    require("../assets/fonts/Poppins/Poppins-SemiBold.ttf"),
+    fontSize
+  );
+  const mediumFontSize = fontSize * 0.4;
+  const mediumFont = useFont(
+    require("@/assets/fonts/Poppins/Poppins-Bold.ttf"),
+    mediumFontSize
+  );
+  const smallFontSize = fontSize * 0.2;
+  const smallFont = useFont(
+    require("../assets/fonts/Poppins/Poppins-Medium.ttf"),
+    smallFontSize
+  );
+
+
+  // Central SVG droplet button logic
+  // Increase droplet size, keep perfectly centered
+  const dropletSize = Math.min(width, height) * 0.28; // Increased from 0.18 to 0.32
+  // Feather droplet SVG path (36x36 viewBox)
+  const dropletSvgPath =
+    "M 18.00,4.04 C 18.00,4.04 26.49,12.52 26.49,12.52 28.66,14.70 30.01,17.70 30.01,21.01 30.01,27.64 24.63,33.01 18.01,33.01 11.38,33.01 6.01,27.64 6.01,21.01 6.01,17.70 7.35,14.70 9.52,12.53 9.52,12.53 18.00,4.04 18.00,4.04 Z";
+  const dropletCenterX = width / 2;
+  const dropletCenterY = height / 2 + fontSize * 0.4;
+  const dropletPathRaw = Skia.Path.MakeFromSVGString(dropletSvgPath);
+  // Center and scale droplet for 36x36 viewBox
+  let dropletPath = null;
+  if (dropletPathRaw) {
+    const dropletTransform = Skia.Matrix();
+    dropletTransform.translate(dropletCenterX - dropletSize / 2, dropletCenterY - dropletSize / 2);
+    dropletTransform.scale(dropletSize / 36, dropletSize / 36); // SVG viewBox is 36x36
+    dropletPathRaw.transform(dropletTransform);
+    dropletPath = dropletPathRaw;
+  }
+  // Dynamic color: inside wave = background, outside = primary
+  const dropletIsInWave = fillPercent > 0.5; // Covered if more than half full
+  const dropletColor = dropletIsInWave ? colors.background : colors.primary;
+
   // Wave parameters
   const waveCount = 1;
   const waveClipCount = waveCount + 1;
@@ -47,32 +89,38 @@ export const LiquidProgressGauge = ({ width, height, value }: Props) => {
   const waveClipWidth = waveLength * waveClipCount;
   const waveHeight = (value >= maxValue) ? 0 : fillRectHeight * 0.03; // flatten out wave at top height
 
-  // Font
-  const fontSize = Math.min(width, height) / 5;
-  const font = useFont(
-    require("../assets/fonts/Poppins/Poppins-SemiBold.ttf"),
-    fontSize
-  );
-  const smallFontSize = fontSize * 0.2;
-  const smallFont = useFont(
-    require("../assets/fonts/Poppins/Poppins-Medium.ttf"),
+  // Dynamic greeting text position and font
+  const greetingText = "Hello  ";
+  const greetingName = userName;
+  const greetingExcl = " !";
+  const greetingTextWidth = smallFont?.getTextWidth(greetingText) ?? 0;
+  // Username in bold, but at smallFontSize
+  const boldSmallFont = useFont(
+    require("@/assets/fonts/Poppins/Poppins-Bold.ttf"),
     smallFontSize
   );
+  const greetingNameWidth = boldSmallFont?.getTextWidth(greetingName) ?? 0;
+  const greetingX = 25;
+  const greetingY = smallFontSize * 8;
+
   // Value text and 'ml' text width
   const valueText = `${value}`;
   const mlText = "ml";
+
   const valueTextWidth = font?.getTextWidth(valueText) ?? 0;
-  const mlTextWidth = font?.getTextWidth(mlText) ?? 0;
-  const totalTextWidth = valueTextWidth + mlTextWidth + fontSize * 0.2; // spacing
+  const mlTextWidth = mediumFont?.getTextWidth(mlText) ?? 0;
+
+  const totalTextWidth = valueTextWidth + mlTextWidth + fontSize * 0.1; // spacing
   const textTranslateX = width / 2 - totalTextWidth / 2;
   const textTranslateY = height / 4;
   const textTransform = [{ translateY: textTranslateY }];
+
   // x ml remaining text
-  const goodJobText = `Remaining: ${maxValue - value}ml`;
-  const goodJobTextWidth = smallFont?.getTextWidth(goodJobText) ?? 0;
-  const goodJobTranslateX = width / 2 - goodJobTextWidth / 2;
-  const goodJobTranslateY = textTranslateY + fontSize * 0.4;
-  const goodJobTransform = [{ translateY: goodJobTranslateY }];
+  const waterRemainingText = value < maxValue ? `Remaining: ${maxValue - value}ml` : "Goal achieved!";
+  const waterRemainingTextWidth = smallFont?.getTextWidth(waterRemainingText) ?? 0;
+  const waterRemainingTranslateX = width / 2 - waterRemainingTextWidth / 2;
+  const waterRemainingTranslateY = textTranslateY + fontSize * 0.4;
+  const waterRemainingTransform = [{ translateY: waterRemainingTranslateY }];
 
   // Data for building the clip wave area for rectangle
   const data: Array<[number, number]> = [];
@@ -169,8 +217,52 @@ export const LiquidProgressGauge = ({ width, height, value }: Props) => {
     return clipP;
   }, [wavePhase, waveFillHeightAnimated]);
 
+  // Helper: check if point is inside droplet bounds
+  function isPointInDroplet(x: number, y: number) {
+    return (
+      x >= dropletCenterX - dropletSize / 2 &&
+      x <= dropletCenterX + dropletSize / 2 &&
+      y >= dropletCenterY - dropletSize / 2 &&
+      y <= dropletCenterY + dropletSize / 2
+    );
+  }
+
   return (
-    <Canvas style={{ width, height }}>
+    <Canvas
+      style={{ width, height }}
+      onTouch={(evt) => {
+        if (evt.touches.length > 0) {
+          const { x, y } = evt.touches[0];
+          if (isPointInDroplet(x, y) && typeof onDropletPress === "function") {
+            onDropletPress();
+          }
+        }
+      }}
+    >
+      {/* Dynamic greeting top left, above wave */}
+      <Group>
+        <Text
+          x={greetingX}
+          y={greetingY}
+          text={greetingText}
+          font={smallFont}
+          color={colors.primary}
+        />
+        <Text
+          x={greetingX + greetingTextWidth}
+          y={greetingY}
+          text={greetingName}
+          font={boldSmallFont}
+          color={colors.primary}
+        />
+        <Text
+          x={greetingX + greetingTextWidth + greetingNameWidth}
+          y={greetingY}
+          text={greetingExcl}
+          font={smallFont}
+          color={colors.primary}
+        />
+      </Group>
       {/* Centered value and 'ml' above the wave */}
       <Group>
         <Text
@@ -182,24 +274,26 @@ export const LiquidProgressGauge = ({ width, height, value }: Props) => {
           transform={textTransform}
         />
         <Text
-          x={textTranslateX + valueTextWidth + fontSize * 0.2}
+          x={textTranslateX + valueTextWidth + mediumFontSize * 0.1}
           y={fontSize}
           text={mlText}
-          font={font}
+          font={mediumFont}
           color={colors.primary}
           transform={textTransform}
         />
-        {/* Small 'good job' text under value */}
+        {/* 'Remaining: x ml' text */}
         <Text
-          x={goodJobTranslateX}
+          x={waterRemainingTranslateX}
           y={fontSize}
-          text={goodJobText}
+          text={waterRemainingText}
           font={smallFont}
           color={colors.primary}
-          transform={goodJobTransform}
+          transform={waterRemainingTransform}
         />
       </Group>
+      {/* Dynamic greeting inside wave, changes color */}
       <Group clip={clipPath}>
+        {/* Gradient fill */}
         <Rect
           x={fillRectMargin}
           y={fillRectMargin}
@@ -212,32 +306,63 @@ export const LiquidProgressGauge = ({ width, height, value }: Props) => {
             colors={["hsl(208, 92%, 62%)", "hsl(221, 91%, 58%)"]}
           />
         </Rect>
+        {/* Dynamic greeting inside wave, on top of gradient fill */}
+        <Text
+          x={greetingX}
+          y={greetingY}
+          text={greetingText}
+          font={smallFont}
+          color={colors.background}
+        />
+        <Text
+          x={greetingX + greetingTextWidth}
+          y={greetingY}
+          text={greetingName}
+          font={boldSmallFont}
+          color={colors.background}
+        />
+        <Text
+          x={greetingX + greetingTextWidth + greetingNameWidth}
+          y={greetingY}
+          text={greetingExcl}
+          font={smallFont}
+          color={colors.background}
+        />
         {/* Centered value and 'ml' under the wave */}
         <Text
           x={textTranslateX}
           y={fontSize}
           text={text}
           font={font}
-          color={colors.white}
+          color={colors.background}
           transform={textTransform}
         />
         <Text
-          x={textTranslateX + valueTextWidth + fontSize * 0.2}
+          x={textTranslateX + valueTextWidth + mediumFontSize * 0.1}
           y={fontSize}
           text={mlText}
-          font={font}
-          color={colors.white}
+          font={mediumFont}
+          color={colors.background}
           transform={textTransform}
         />
         {/* Small 'good job' text under value, under the wave */}
         <Text
-          x={goodJobTranslateX}
+          x={waterRemainingTranslateX}
           y={fontSize}
-          text={goodJobText}
+          text={waterRemainingText}
           font={smallFont}
-          color={colors.white}
-          transform={goodJobTransform}
+          color={colors.background}
+          transform={waterRemainingTransform}
         />
+      </Group>
+      {/* Central SVG droplet button with dynamic color */}
+      {/* Droplet above wave (primary color) */}
+      <Group>
+        {dropletPath && <Path path={dropletPath} color={colors.primary} />}
+      </Group>
+      {/* Droplet under wave (background color), clipped by wave */}
+      <Group clip={clipPath}>
+        {dropletPath && <Path path={dropletPath} color={colors.background} />}
       </Group>
     </Canvas>
   );
