@@ -6,6 +6,7 @@ import {
   Path,
   Rect,
   Skia,
+  SkPath,
   Text,
   useFont,
   vec
@@ -24,11 +25,12 @@ type Props = {
   width: number;
   height: number;
   value: number;
+  maxValue: number;
   userName: string;
   onDropletPress?: () => void;
 };
 
-export const LiquidProgressGauge = ({ width, height, value, userName, onDropletPress }: Props) => {
+export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, onDropletPress }: Props) => {
   const colors = useThemeColors();
 
   // Rectangle dimensions
@@ -39,7 +41,6 @@ export const LiquidProgressGauge = ({ width, height, value, userName, onDropletP
   const fillRectHeight = height - fillRectMargin * 2;
 
   const minValue = 0;
-  const maxValue = 2400;
   const fillPercent = Math.max(minValue, Math.min(maxValue, value)) / maxValue;
 
   // Font
@@ -153,10 +154,10 @@ export const LiquidProgressGauge = ({ width, height, value, userName, onDropletP
 
   // area for rectangle, uses phase for seamless animation
   const clipArea = area()
-    .x(function (d) {
+    .x(function (d: [number, number]) {
       return waveScaleX(d[0]);
     })
-    .y0(function (d) {
+    .y0(function (d: [number, number]) {
       // Use phase for seamless animation
       const phase = (wavePhase.value % 1) * 2 * Math.PI;
       return (
@@ -164,7 +165,7 @@ export const LiquidProgressGauge = ({ width, height, value, userName, onDropletP
         waveScaleY(Math.sin(d[1] * 2 * Math.PI + phase))
       );
     })
-    .y1(function (_d) {
+    .y1(function (_d: [number, number]) {
       return fillRectHeight + waveHeight;
     });
 
@@ -207,7 +208,8 @@ export const LiquidProgressGauge = ({ width, height, value, userName, onDropletP
   const gradientEndY = Math.min(fillRectHeight, fillRectHeight * (1 - fillPercent) + waveHeight);
 
   const clipPath = useDerivedValue(() => {
-    const clipP = Skia.Path.MakeFromSVGString(clipSvgPath);
+    const clipP: SkPath | null = Skia.Path.MakeFromSVGString(clipSvgPath);
+    if (!clipP) return null;
     const transformMatrix = Skia.Matrix();
     transformMatrix.translate(
       fillRectMargin - waveLength * wavePhase.value,
@@ -227,17 +229,48 @@ export const LiquidProgressGauge = ({ width, height, value, userName, onDropletP
     );
   }
 
+  // Plus icon SVG path (centered in droplet, visually pixel-perfect)
+  const plusSize = dropletSize * 0.2;
+  // Further adjust center for pixel-perfect centering
+  const plusCenterX = width/2 - plusSize/2;
+  const plusCenterY = dropletCenterY - plusSize * 0.9;
+  const plusSvgPath =
+    "M 18 17.5 a 1.2 1.2 0 0 1 1.2 1.2 v 2.8 h 2.8 a 1.2 1.2 0 0 1 0 2.4 h -2.8 v 2.8 a 1.2 1.2 0 0 1 -2.4 0 v -2.8 h -2.8 a 1.2 1.2 0 0 1 0 -2.4 h 2.8 v -2.8 a 1.2 1.2 0 0 1 1.2 -1.2 Z";
+  const plusPathRaw = Skia.Path.MakeFromSVGString(plusSvgPath);
+  let plusPath = null;
+  if (plusPathRaw) {
+    const plusTransform = Skia.Matrix();
+    plusTransform.translate(plusCenterX - plusSize, plusCenterY - plusSize / 2);
+    plusTransform.scale(plusSize / 12, plusSize / 12); // SVG viewBox is roughly 12x12
+    plusPathRaw.transform(plusTransform);
+    plusPath = plusPathRaw;
+  }
+
+  // Reusable component for dynamic color masking with wave
+  const WaveMasked = ({
+    path,
+    aboveColor,
+    belowColor,
+    clipPath,
+  }: {
+    path: any;
+    aboveColor: string;
+    belowColor: string;
+    clipPath: any;
+  }) => (
+    <>
+      {/* Above wave (normal color) */}
+      <Path path={path} color={aboveColor} />
+      {/* Under wave (masked color) */}
+      <Group clip={clipPath?.value ? clipPath : undefined}>
+        <Path path={path} color={belowColor} />
+      </Group>
+    </>
+  );
+
   return (
     <Canvas
       style={{ width, height }}
-      onTouch={(evt) => {
-        if (evt.touches.length > 0) {
-          const { x, y } = evt.touches[0];
-          if (isPointInDroplet(x, y) && typeof onDropletPress === "function") {
-            onDropletPress();
-          }
-        }
-      }}
     >
       {/* Dynamic greeting top left, above wave */}
       <Group>
@@ -356,14 +389,19 @@ export const LiquidProgressGauge = ({ width, height, value, userName, onDropletP
         />
       </Group>
       {/* Central SVG droplet button with dynamic color */}
-      {/* Droplet above wave (primary color) */}
-      <Group>
-        {dropletPath && <Path path={dropletPath} color={colors.primary} />}
-      </Group>
-      {/* Droplet under wave (background color), clipped by wave */}
-      <Group clip={clipPath}>
-        {dropletPath && <Path path={dropletPath} color={colors.background} />}
-      </Group>
+      <WaveMasked
+        path={dropletPath}
+        aboveColor={colors.primary}
+        belowColor={colors.background}
+        clipPath={clipPath}
+      />
+      {/* Plus icon with dynamic color */}
+      <WaveMasked
+        path={plusPath}
+        aboveColor={colors.background}
+        belowColor={colors.primary}
+        clipPath={clipPath}
+      />
     </Canvas>
   );
 };

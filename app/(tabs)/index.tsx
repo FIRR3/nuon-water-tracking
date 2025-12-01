@@ -15,7 +15,8 @@ export default function Index() {
         <LiquidProgressGauge
           width={windowWidth}
           height={windowHeight}
-          value={1200}
+          value={120}
+          maxValue={2400}
           userName="Firuz"
         />
       </ScrollView>
