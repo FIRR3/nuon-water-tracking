@@ -41,8 +41,6 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       stiffness: 100, // lower = softer spring
       mass: 1, // higher = slower bounce
       overshootClamping: false,
-      restDisplacementThreshold: 0.01,
-      restSpeedThreshold: 0.01,
     });
   }, [state.index]);
 
@@ -72,12 +70,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       />
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
-        const label =
-          options.tabBarLabel !== undefined
-            ? options.tabBarLabel
-            : options.title !== undefined
-              ? options.title
-              : route.name;
+        const label = options.title ? options.title : route.name;
 
         const isFocused = state.index === index;
 

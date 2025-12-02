@@ -1,3 +1,4 @@
+import { FONT_SIZES } from "@/constants/typography";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import {
   Canvas,
@@ -43,21 +44,26 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
   const minValue = 0;
   const fillPercent = Math.max(minValue, Math.min(maxValue, value)) / maxValue;
 
-  // Font
-  const fontSize = Math.min(width, height) / 5;
-  const font = useFont(
-    require("../assets/fonts/Poppins/Poppins-SemiBold.ttf"),
-    fontSize
+  // Fonts
+  const xlFontSize = FONT_SIZES.xl;
+  const xlFont = useFont(
+    require("@/assets/fonts/Poppins/Poppins-SemiBold.ttf"),
+    xlFontSize
   );
-  const mediumFontSize = fontSize * 0.4;
-  const mediumFont = useFont(
+  const mlTextFontSize = xlFontSize * 0.4;
+  const mlTextFont = useFont(
     require("@/assets/fonts/Poppins/Poppins-Bold.ttf"),
-    mediumFontSize
+    mlTextFontSize
   );
-  const smallFontSize = fontSize * 0.2;
-  const smallFont = useFont(
-    require("../assets/fonts/Poppins/Poppins-Medium.ttf"),
-    smallFontSize
+  const mdFontSize = FONT_SIZES.md;
+  const mdFont = useFont(
+    require("@/assets/fonts/Poppins/Poppins-Regular.ttf"),
+    mdFontSize
+  )
+  const smFontSize = FONT_SIZES.sm;
+  const smFont = useFont(
+    require("@/assets/fonts/Poppins/Poppins-Regular.ttf"),
+    smFontSize
   );
 
 
@@ -68,7 +74,7 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
   const dropletSvgPath =
     "M 18.00,4.04 C 18.00,4.04 26.49,12.52 26.49,12.52 28.66,14.70 30.01,17.70 30.01,21.01 30.01,27.64 24.63,33.01 18.01,33.01 11.38,33.01 6.01,27.64 6.01,21.01 6.01,17.70 7.35,14.70 9.52,12.53 9.52,12.53 18.00,4.04 18.00,4.04 Z";
   const dropletCenterX = width / 2;
-  const dropletCenterY = height / 2 + fontSize * 0.4;
+  const dropletCenterY = height - dropletSize * 2.75;
   const dropletPathRaw = Skia.Path.MakeFromSVGString(dropletSvgPath);
   // Center and scale droplet for 36x36 viewBox
   let dropletPath = null;
@@ -88,39 +94,39 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
   const waveClipCount = waveCount + 1;
   const waveLength = fillRectWidth / waveCount;
   const waveClipWidth = waveLength * waveClipCount;
-  const waveHeight = (value >= maxValue) ? 0 : fillRectHeight * 0.03; // flatten out wave at top height
+  const waveHeight = (value >= maxValue || value == minValue) ? 0 : fillRectHeight * 0.03; // flatten out wave at top height
 
   // Dynamic greeting text position and font
   const greetingText = "Hello  ";
   const greetingName = userName;
   const greetingExcl = " !";
-  const greetingTextWidth = smallFont?.getTextWidth(greetingText) ?? 0;
-  // Username in bold, but at smallFontSize
-  const boldSmallFont = useFont(
+  const greetingTextWidth = mdFont?.getTextWidth(greetingText) ?? 0;
+  // Username in bold, but at smFontSize
+  const boldmdFont = useFont(
     require("@/assets/fonts/Poppins/Poppins-Bold.ttf"),
-    smallFontSize
+    mdFontSize
   );
-  const greetingNameWidth = boldSmallFont?.getTextWidth(greetingName) ?? 0;
+  const greetingNameWidth = boldmdFont?.getTextWidth(greetingName) ?? 0;
   const greetingX = 25;
-  const greetingY = smallFontSize * 8;
+  const greetingY = 120;
 
   // Value text and 'ml' text width
   const valueText = `${value}`;
   const mlText = "ml";
 
-  const valueTextWidth = font?.getTextWidth(valueText) ?? 0;
-  const mlTextWidth = mediumFont?.getTextWidth(mlText) ?? 0;
+  const valueTextWidth = xlFont?.getTextWidth(valueText) ?? 0;
+  const mlTextWidth = mlTextFont?.getTextWidth(mlText) ?? 0;
 
-  const totalTextWidth = valueTextWidth + mlTextWidth + fontSize * 0.1; // spacing
+  const totalTextWidth = valueTextWidth + mlTextWidth + xlFontSize * 0.1; // spacing
   const textTranslateX = width / 2 - totalTextWidth / 2;
   const textTranslateY = height / 4;
   const textTransform = [{ translateY: textTranslateY }];
 
   // x ml remaining text
   const waterRemainingText = value < maxValue ? `Remaining: ${maxValue - value}ml` : "Goal achieved!";
-  const waterRemainingTextWidth = smallFont?.getTextWidth(waterRemainingText) ?? 0;
+  const waterRemainingTextWidth = smFont?.getTextWidth(waterRemainingText) ?? 0;
   const waterRemainingTranslateX = width / 2 - waterRemainingTextWidth / 2;
-  const waterRemainingTranslateY = textTranslateY + fontSize * 0.4;
+  const waterRemainingTranslateY = textTranslateY + xlFontSize * 0.4;
   const waterRemainingTransform = [{ translateY: waterRemainingTranslateY }];
 
   // Data for building the clip wave area for rectangle
@@ -209,7 +215,7 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
 
   const clipPath = useDerivedValue(() => {
     const clipP: SkPath | null = Skia.Path.MakeFromSVGString(clipSvgPath);
-    if (!clipP) return null;
+    if (!clipP) return undefined;
     const transformMatrix = Skia.Matrix();
     transformMatrix.translate(
       fillRectMargin - waveLength * wavePhase.value,
@@ -246,87 +252,166 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
     plusPath = plusPathRaw;
   }
 
+
   // Reusable component for dynamic color masking with wave
-  const WaveMasked = ({
-    path,
-    aboveColor,
-    belowColor,
-    clipPath,
-  }: {
+  const WaveMasked = ({ path, aboveColor, belowColor, clipPath }: {
     path: any;
     aboveColor: string;
     belowColor: string;
     clipPath: any;
-  }) => (
-    <>
-      {/* Above wave (normal color) */}
-      <Path path={path} color={aboveColor} />
-      {/* Under wave (masked color) */}
-      <Group clip={clipPath?.value ? clipPath : undefined}>
-        <Path path={path} color={belowColor} />
-      </Group>
-    </>
-  );
+  }) => {
+    // Avoid reading .value during render
+    const clip = React.useMemo(() => {
+      return clipPath?.value ? clipPath : undefined;
+    }, [clipPath]);
+    return (
+      <>
+        <Path path={path} color={aboveColor} />
+        <Group clip={clip}>
+          <Path path={path} color={belowColor} />
+        </Group>
+      </>
+    );
+  };
 
-  return (
-    <Canvas
-      style={{ width, height }}
-    >
-      {/* Dynamic greeting top left, above wave */}
-      <Group>
+  // Text and greeting component
+  function GaugeText({
+    greetingX,
+    greetingY,
+    greetingText,
+    greetingTextWidth,
+    greetingName,
+    greetingNameWidth,
+    greetingExcl,
+    Font,
+    mdFont,
+    boldmdFont,
+    textTranslateX,
+    xlFontSize,
+    text,
+    font,
+    valueTextWidth,
+    mlTextFontSize,
+    mlText,
+    mlTextFont,
+    textTransform,
+    waterRemainingTranslateX,
+    waterRemainingText,
+    waterRemainingTransform,
+    colors,
+    color,
+  }: any) {
+    return (
+      <>
+        {/* Greeting */}
         <Text
           x={greetingX}
           y={greetingY}
           text={greetingText}
-          font={smallFont}
-          color={colors.primary}
+          font={mdFont}
+          color={color}
         />
         <Text
           x={greetingX + greetingTextWidth}
           y={greetingY}
           text={greetingName}
-          font={boldSmallFont}
-          color={colors.primary}
+          font={boldmdFont}
+          color={color}
         />
         <Text
           x={greetingX + greetingTextWidth + greetingNameWidth}
           y={greetingY}
           text={greetingExcl}
-          font={smallFont}
-          color={colors.primary}
+          font={mdFont}
+          color={color}
         />
-      </Group>
-      {/* Centered value and 'ml' above the wave */}
-      <Group>
+        {/* Centered value and 'ml' */}
         <Text
           x={textTranslateX}
-          y={fontSize}
+          y={xlFontSize}
           text={text}
-          font={font}
-          color={colors.primary}
+          font={xlFont}
+          color={color}
           transform={textTransform}
         />
         <Text
-          x={textTranslateX + valueTextWidth + mediumFontSize * 0.1}
-          y={fontSize}
+          x={textTranslateX + valueTextWidth + mlTextFontSize * 0.1}
+          y={xlFontSize}
           text={mlText}
-          font={mediumFont}
-          color={colors.primary}
+          font={mlTextFont}
+          color={color}
           transform={textTransform}
         />
-        {/* 'Remaining: x ml' text */}
+        {/* Remaining text */}
         <Text
           x={waterRemainingTranslateX}
-          y={fontSize}
+          y={xlFontSize}
           text={waterRemainingText}
-          font={smallFont}
-          color={colors.primary}
+          font={smFont}
+          color={color}
           transform={waterRemainingTransform}
         />
+      </>
+    );
+  }
+
+  // Droplet and plus icon component
+  function GaugeDroplet({
+    dropletPath,
+    colors,
+    clipPath,
+    plusPath,
+  }: any) {
+    return (
+      <>
+        <WaveMasked
+          path={dropletPath}
+          aboveColor={colors.primary}
+          belowColor={colors.background}
+          clipPath={clipPath}
+        />
+        <WaveMasked
+          path={plusPath}
+          aboveColor={colors.background}
+          belowColor={colors.primary}
+          clipPath={clipPath}
+        />
+      </>
+    );
+  }
+
+  return (
+    <Canvas style={{ width, height }}>
+      {/* Text and greeting above wave */}
+      <Group>
+        <GaugeText
+          greetingX={greetingX}
+          greetingY={greetingY}
+          greetingText={greetingText}
+          greetingTextWidth={greetingTextWidth}
+          greetingName={greetingName}
+          greetingNameWidth={greetingNameWidth}
+          greetingExcl={greetingExcl}
+          mdFont={mdFont}
+          boldmdFont={boldmdFont}
+          textTranslateX={textTranslateX}
+          xlFontSize={xlFontSize}
+          text={text}
+          font={xlFont}
+          valueTextWidth={valueTextWidth}
+          mlTextFontSize={mlTextFontSize}
+          mlText={mlText}
+          mlTextFont={mlTextFont}
+          textTransform={textTransform}
+          waterRemainingTranslateX={waterRemainingTranslateX}
+          waterRemainingText={waterRemainingText}
+          waterRemainingTransform={waterRemainingTransform}
+          colors={colors}
+          color={colors.primary}
+        />
       </Group>
-      {/* Dynamic greeting inside wave, changes color */}
+      {/* Gradient and clipped text inside wave */}
       <Group clip={clipPath}>
-        {/* Gradient fill */}
         <Rect
           x={fillRectMargin}
           y={fillRectMargin}
@@ -339,68 +424,38 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
             colors={["hsl(208, 92%, 62%)", "hsl(221, 91%, 58%)"]}
           />
         </Rect>
-        {/* Dynamic greeting inside wave, on top of gradient fill */}
-        <Text
-          x={greetingX}
-          y={greetingY}
-          text={greetingText}
-          font={smallFont}
-          color={colors.background}
-        />
-        <Text
-          x={greetingX + greetingTextWidth}
-          y={greetingY}
-          text={greetingName}
-          font={boldSmallFont}
-          color={colors.background}
-        />
-        <Text
-          x={greetingX + greetingTextWidth + greetingNameWidth}
-          y={greetingY}
-          text={greetingExcl}
-          font={smallFont}
-          color={colors.background}
-        />
-        {/* Centered value and 'ml' under the wave */}
-        <Text
-          x={textTranslateX}
-          y={fontSize}
+        <GaugeText
+          greetingX={greetingX}
+          greetingY={greetingY}
+          greetingText={greetingText}
+          greetingTextWidth={greetingTextWidth}
+          greetingName={greetingName}
+          greetingNameWidth={greetingNameWidth}
+          greetingExcl={greetingExcl}
+          smFont={smFont}
+          boldmdFont={boldmdFont}
+          textTranslateX={textTranslateX}
+          xlFontSize={xlFontSize}
           text={text}
-          font={font}
+          font={xlFont}
+          valueTextWidth={valueTextWidth}
+          mlTextFontSize={mlTextFontSize}
+          mlText={mlText}
+          mlTextFont={mlTextFont}
+          textTransform={textTransform}
+          waterRemainingTranslateX={waterRemainingTranslateX}
+          waterRemainingText={waterRemainingText}
+          waterRemainingTransform={waterRemainingTransform}
+          colors={colors}
           color={colors.background}
-          transform={textTransform}
-        />
-        <Text
-          x={textTranslateX + valueTextWidth + mediumFontSize * 0.1}
-          y={fontSize}
-          text={mlText}
-          font={mediumFont}
-          color={colors.background}
-          transform={textTransform}
-        />
-        {/* Small 'good job' text under value, under the wave */}
-        <Text
-          x={waterRemainingTranslateX}
-          y={fontSize}
-          text={waterRemainingText}
-          font={smallFont}
-          color={colors.background}
-          transform={waterRemainingTransform}
         />
       </Group>
-      {/* Central SVG droplet button with dynamic color */}
-      <WaveMasked
-        path={dropletPath}
-        aboveColor={colors.primary}
-        belowColor={colors.background}
+      {/* Droplet and plus icon, clipped by wave */}
+      <GaugeDroplet
+        dropletPath={dropletPath}
+        colors={colors}
         clipPath={clipPath}
-      />
-      {/* Plus icon with dynamic color */}
-      <WaveMasked
-        path={plusPath}
-        aboveColor={colors.background}
-        belowColor={colors.primary}
-        clipPath={clipPath}
+        plusPath={plusPath}
       />
     </Canvas>
   );

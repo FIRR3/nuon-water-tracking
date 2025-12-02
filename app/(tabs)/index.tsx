@@ -15,7 +15,7 @@ export default function Index() {
         <LiquidProgressGauge
           width={windowWidth}
           height={windowHeight}
-          value={120}
+          value={160}
           maxValue={2400}
           userName="Firuz"
         />

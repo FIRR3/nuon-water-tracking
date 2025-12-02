@@ -9,6 +9,18 @@ module.exports = {
   theme: {
     extend: {
       colors,
+      fontFamily: {
+        poppins: ["Poppins-Regular"],
+        'poppins-medium': ["Poppins-Medium"],
+        'poppins-bold': ["Poppins-Bold"],
+      },
+      fontSize: {
+        xs: 12,
+        sm: 14,
+        md: 18,
+        lg: 24,
+        xl: 70,
+      },
     },
   },
   plugins: [],
