@@ -31,6 +31,22 @@ type Props = {
   onDropletPress?: () => void;
 };
 
+export const getDropletPosition = (width: number, height: number) => {
+  const dropletSize = Math.min(width, height) * 0.28;
+  const dropletCenterX = width / 2;
+  const dropletCenterY = height - dropletSize * 2.75;
+  const dropletPositionX = dropletCenterX - dropletSize / 2;
+  const dropletPositionY = dropletCenterY - dropletSize / 2;
+  
+  return {
+    size: dropletSize,
+    centerX: dropletCenterX,
+    centerY: dropletCenterY,
+    positionX: dropletPositionX,
+    positionY: dropletPositionY,
+  };
+};
+
 export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, onDropletPress }: Props) => {
   const colors = useThemeColors();
 
@@ -68,13 +84,10 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
 
 
   // Central SVG droplet button logic
-  // Increase droplet size, keep perfectly centered
-  const dropletSize = Math.min(width, height) * 0.28; // Increased from 0.18 to 0.32
+  const { size: dropletSize, centerX: dropletCenterX, centerY: dropletCenterY } = getDropletPosition(width, height);
   // Feather droplet SVG path (36x36 viewBox)
   const dropletSvgPath =
     "M 18.00,4.04 C 18.00,4.04 26.49,12.52 26.49,12.52 28.66,14.70 30.01,17.70 30.01,21.01 30.01,27.64 24.63,33.01 18.01,33.01 11.38,33.01 6.01,27.64 6.01,21.01 6.01,17.70 7.35,14.70 9.52,12.53 9.52,12.53 18.00,4.04 18.00,4.04 Z";
-  const dropletCenterX = width / 2;
-  const dropletCenterY = height - dropletSize * 2.75;
   const dropletPathRaw = Skia.Path.MakeFromSVGString(dropletSvgPath);
   // Center and scale droplet for 36x36 viewBox
   let dropletPath = null;
@@ -85,6 +98,8 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
     dropletPathRaw.transform(dropletTransform);
     dropletPath = dropletPathRaw;
   }
+
+
   // Dynamic color: inside wave = background, outside = primary
   const dropletIsInWave = fillPercent > 0.5; // Covered if more than half full
   const dropletColor = dropletIsInWave ? colors.background : colors.primary;

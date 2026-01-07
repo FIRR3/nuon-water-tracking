@@ -70,4 +70,4 @@ const TabBarButton = ({ onPress, onLongPress, isFocused, routeName, color, label
   )
 }
 
-export default TabBarButton
+export default TabBarButton;

@@ -5,7 +5,7 @@ import { Text } from 'react-native';
 const Statistics = () => {
   return (
     <ScreenBackgroundWrapper style={{ justifyContent: "center", alignItems: "center" }}>
-      <Text className='text-5xl'>Stats</Text>
+      <Text className='text-5xl text-white'>Stats</Text>
     </ScreenBackgroundWrapper>
   )
 }

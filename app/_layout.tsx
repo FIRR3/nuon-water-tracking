@@ -1,9 +1,8 @@
 import { useThemeColors } from "@/hooks/useThemeColors";
 import * as Font from 'expo-font';
 import { Stack } from "expo-router";
-import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View } from "react-native";
 import './globals.css';
 
@@ -14,33 +13,31 @@ const customFonts = {
   'Poppins-Bold': require('@/assets/fonts/Poppins/Poppins-Bold.ttf'),
 };
 
-SplashScreen.preventAutoHideAsync();
-
 export default function RootLayout() {
   const colors = useThemeColors();
-  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [appIsReady, setAppIsReady] = useState(false);
 
   useEffect(() => {
-    async function loadFonts() {
-      await Font.loadAsync(customFonts);
-      setFontsLoaded(true);
-      await SplashScreen.hideAsync();
+    async function prepare() {
+      try {
+        // Pre-load fonts
+        await Font.loadAsync(customFonts);
+      } catch (e) {
+        console.warn("Error in prepare:", e);
+      } finally {
+        setAppIsReady(true);
+      }
     }
-    loadFonts();
+
+    prepare();
   }, []);
 
-  const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded) {
-      await SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
-
-  if (!fontsLoaded) {
-    return null; // Splash screen stays visible
+  if (!appIsReady) {
+    return null;
   }
 
   return (
-    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+    <View style={{ flex: 1 }}>
       <StatusBar style="auto" />
       <Stack
         screenOptions={{
