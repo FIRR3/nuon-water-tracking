@@ -1,4 +1,4 @@
-import { icon } from '@/constants/icon';
+import { TabIcons } from '@/constants/icon';
 import { FONT_SIZES } from '@/constants/typography';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { PlatformPressable } from '@react-navigation/elements';
@@ -59,7 +59,7 @@ const TabBarButton = ({ onPress, onLongPress, isFocused, routeName, color, label
       className='flex-1 justify-center items-center gap-[5px]'
     >
       <Animated.View style={animatedIconStyle as any}>
-        {icon[routeName as keyof typeof icon]({
+        {TabIcons[routeName as keyof typeof TabIcons]({
           color: isFocused ? colors.white : colors.primary
         })}
       </Animated.View>

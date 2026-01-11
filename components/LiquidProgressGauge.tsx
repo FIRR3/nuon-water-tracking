@@ -58,6 +58,7 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
   const fillRectHeight = height - fillRectMargin * 2;
 
   const minValue = 0;
+  
   const fillPercent = Math.max(minValue, Math.min(maxValue, value)) / maxValue;
 
   // Fonts
@@ -156,9 +157,7 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
   // Animation phase for seamless wave
   const wavePhase = useSharedValue(0);
 
-  // Reset wave animation on value change for a smooth experience
   useEffect(() => {
-    wavePhase.value = 0;
     wavePhase.value = withRepeat(
       withTiming(1, {
         duration: 9000,
@@ -166,7 +165,7 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
       }),
       -1
     );
-  }, [value]);
+  }, []);
 
   // Animated fill height for gradient and wave
   const waveFillHeightAnimated = useDerivedValue(() => {
@@ -211,18 +210,9 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
     translateYPercent.value = withTiming(fillPercent, {
       duration: 5000,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fillPercent]);
+  }, [value, fillPercent]);
 
-  useEffect(() => {
-    translateXAnimated.value = withRepeat(
-      withTiming(1, {
-        duration: 9000,
-        easing: Easing.linear,
-      }),
-      -1
-    );
-  }, []);
+
 
   // Gradient follows the wave crest
   const gradientStartY = fillRectHeight;

@@ -1,9 +1,11 @@
 import { getDropletPosition, LiquidProgressGauge } from "@/components/LiquidProgressGauge";
 import Modal from "@/components/Modal";
 import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
+import { constantColors } from "@/constants/colors";
+import { UIIcons } from "@/constants/icon";
 import { useRouter } from 'expo-router';
-import React, { useRef, useState } from "react";
-import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { Dimensions, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 
 interface WaterAdjustModalProps {
@@ -12,120 +14,31 @@ interface WaterAdjustModalProps {
 }
 
 function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
-  // STEP 1: Generate numbers array from -5000 to 5000 in steps of 10
-  const numbers = Array.from({ length: 1001 }, (_, i) => (i - 500) * 10);
-  
-  // STEP 2: Track which number is selected (starts at 0)
+
   const [selectedValue, setSelectedValue] = useState(0);
-  const [containerWidth, setContainerWidth] = useState(0);
-  const scrollViewRef = useRef<ScrollView>(null);
-  const [hasScrolledToStart, setHasScrolledToStart] = useState(false);
-  
-  // STEP 3: Define sizing constants - wider to show only 3 numbers
-  const ITEM_WIDTH = 120; // Increased width to show fewer numbers
-  
-  // Scroll to 0 (index 500) when modal opens
-  React.useEffect(() => {
-    if (containerWidth > 0 && !hasScrolledToStart) {
-      const centerIndex = 500; // Index where value is 0
-      const scrollToX = centerIndex * ITEM_WIDTH;
-      
-      // Immediate scroll with multiple attempts to ensure it sticks
-      requestAnimationFrame(() => {
-        scrollViewRef.current?.scrollTo({ x: scrollToX, animated: false });
-        // Force another scroll after a tiny delay to fix initial positioning
-        setTimeout(() => {
-          scrollViewRef.current?.scrollTo({ x: scrollToX, animated: false });
-          setHasScrolledToStart(true);
-        }, 50);
-      });
-      setSelectedValue(0); // Ensure it's set immediately
-    }
-  }, [containerWidth, hasScrolledToStart]);
-  
-  // STEP 4: Update selection IMMEDIATELY during scroll (iPhone-style smooth)
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const scrollX = event.nativeEvent.contentOffset.x;
-    // Always update to the NEAREST number, even while scrolling
-    const index = Math.round(scrollX / ITEM_WIDTH);
-    
-    if (numbers[index] !== undefined) {
-      setSelectedValue(numbers[index]);
-    }
-  };
 
   return (
     <View 
       className="bg-light-primary w-[90%] rounded-3xl overflow-hidden shadow-2xl border border-white/5"
-      onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
     >
-      <View className="p-8 pb-4 gap-6">
+      <View className="p-8 pb-4 gap-5">
         <Text className="text-white text-lg text-center font-poppins-medium text-opacity-90">
           Add or Remove Water
         </Text>
 
-        {/* STEP 5: The Number Picker Container */}
-        <View className="h-32 justify-center items-center relative">
-          {containerWidth > 0 && (
-            <>
-              {/* Display the selected value on TOP - never clips */}
-              <View className="absolute z-20 pointer-events-none" style={{ width: containerWidth }}>
-                <Text
-                  allowFontScaling={false}
-                  className="text-white text-[56px] font-poppins-semibold text-center"
-                  style={{
-                    includeFontPadding: false,
-                  }}
-                >
-                  {selectedValue > 0 ? `+${selectedValue}` : selectedValue}
-                </Text>
-              </View>
-              
-              <ScrollView
-                ref={scrollViewRef}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                // STEP 6: Snapping configuration
-                snapToInterval={ITEM_WIDTH}
-                snapToAlignment="center"
-                decelerationRate="normal" // Normal for velocity-based scrolling
-                scrollEnabled={true}
-                nestedScrollEnabled={true}
-                contentContainerStyle={{
-                  // STEP 7: Padding allows first/last items to reach center
-                  paddingHorizontal: (containerWidth - ITEM_WIDTH) / 2,
-                  alignItems: 'center',
-                }}
-                // STEP 8: Track scroll in REAL-TIME (every frame)
-                onScroll={handleScroll}
-                scrollEventThrottle={16} // 60fps smooth updates
-              >
-                {numbers.map((num) => {
-                  const isSelected = num === selectedValue;
-                  return (
-                    <View 
-                      key={num} 
-                      style={{ width: ITEM_WIDTH }} 
-                      className="items-center justify-center h-full"
-                    >
-                      <Text
-                        allowFontScaling={false}
-                        className={`font-poppins-medium text-[28px] ${
-                          isSelected ? "opacity-0" : "text-gray-600"
-                        }`}
-                        style={{
-                          includeFontPadding: false,
-                        }}
-                      >
-                        {num > 0 ? `+${num}` : num}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </ScrollView>
-            </>
-          )}
+        <View className="flex flex-row justify-between items-center">
+          <TouchableOpacity onPress={() => setSelectedValue(prev => prev - 50)}>
+            <UIIcons.remove color={constantColors.accent} size={30}/>
+          </TouchableOpacity>
+
+          <Text className="text-center text-white text-[50px] font-poppins-medium">{selectedValue}</Text>
+
+          <TouchableOpacity onPress={() => setSelectedValue(prev => prev + 50)}>
+            <UIIcons.add color={constantColors.accent} size={30}/>
+          </TouchableOpacity>
         </View>
+
+        <Text className="text-center text-sm text-white font-poppins-semibold border-2 border-white w-12 p-1 mx-auto mt-[-12px]">ml</Text>
 
         <Text className="text-white/40 text-sm text-center px-4 font-poppins-regular leading-tight">
           *Your water bottle already tracks your water intake. Increase or decrease if needed.
@@ -150,7 +63,7 @@ function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
           className="flex-1 py-5 items-center justify-center active:bg-white/5" 
           onPress={() => onSave(selectedValue)}
         >
-          <Text className="text-white text-md font-poppins-semibold">Save</Text>
+          <Text className="text-white text-md font-poppins-medium">Save</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -158,6 +71,10 @@ function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
 }
 
 export default function Index() {
+  const [currentWaterIntake, setCurrentWaterIntake] = useState(1000);
+  let recommendedWaterIntake = 2400;
+  let userName = "Firuz";
+
   const router = useRouter();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -211,7 +128,7 @@ export default function Index() {
             onClose={() => setModalOpen(false)} 
             onSave={(value) => {
               // STEP 9: Use the selected value here
-              console.log('Selected adjustment:', value);
+              setCurrentWaterIntake(prev => Math.max(0, prev + value));
               // TODO: Update your water intake with this value
               setModalOpen(false);
             }}
@@ -221,9 +138,9 @@ export default function Index() {
         <LiquidProgressGauge
           width={windowWidth}
           height={windowHeight}
-          value={1200}
-          maxValue={2400}
-          userName="Firuz"
+          value={currentWaterIntake}
+          maxValue={recommendedWaterIntake}
+          userName={userName}
         />
 
       </ScrollView>
