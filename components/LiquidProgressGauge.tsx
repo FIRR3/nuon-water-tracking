@@ -279,8 +279,8 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
     );
   };
 
-  // Text and greeting component
-  function GaugeText({
+  // Text and greeting component - split into parts that need masking
+  function GaugeGreeting({
     greetingX,
     greetingY,
     greetingText,
@@ -288,27 +288,12 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
     greetingName,
     greetingNameWidth,
     greetingExcl,
-    Font,
     mdFont,
     boldmdFont,
-    textTranslateX,
-    xlFontSize,
-    text,
-    font,
-    valueTextWidth,
-    mlTextFontSize,
-    mlText,
-    mlTextFont,
-    textTransform,
-    waterRemainingTranslateX,
-    waterRemainingText,
-    waterRemainingTransform,
-    colors,
     color,
   }: any) {
     return (
       <>
-        {/* Greeting */}
         <Text
           x={greetingX}
           y={greetingY}
@@ -330,6 +315,30 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
           font={mdFont}
           color={color}
         />
+      </>
+    );
+  }
+
+  // Text and greeting component
+  function GaugeText({
+    textTranslateX,
+    xlFontSize,
+    text,
+    font,
+    valueTextWidth,
+    mlTextFontSize,
+    mlText,
+    mlTextFont,
+    textTransform,
+    waterRemainingTranslateX,
+    waterRemainingText,
+    waterRemainingTransform,
+    xlFont,
+    smFont,
+    color,
+  }: any) {
+    return (
+      <>
         {/* Centered value and 'ml' */}
         <Text
           x={textTranslateX}
@@ -389,7 +398,7 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
     <Canvas style={{ width, height }}>
       {/* Text and greeting above wave */}
       <Group>
-        <GaugeText
+        <GaugeGreeting
           greetingX={greetingX}
           greetingY={greetingY}
           greetingText={greetingText}
@@ -399,10 +408,12 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
           greetingExcl={greetingExcl}
           mdFont={mdFont}
           boldmdFont={boldmdFont}
+          color={colors.primary}
+        />
+        <GaugeText
           textTranslateX={textTranslateX}
           xlFontSize={xlFontSize}
           text={text}
-          font={xlFont}
           valueTextWidth={valueTextWidth}
           mlTextFontSize={mlTextFontSize}
           mlText={mlText}
@@ -411,7 +422,8 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
           waterRemainingTranslateX={waterRemainingTranslateX}
           waterRemainingText={waterRemainingText}
           waterRemainingTransform={waterRemainingTransform}
-          colors={colors}
+          xlFont={xlFont}
+          smFont={smFont}
           color={colors.primary}
         />
       </Group>
@@ -429,7 +441,7 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
             colors={["hsl(208, 92%, 62%)", "hsl(221, 91%, 58%)"]}
           />
         </Rect>
-        <GaugeText
+        <GaugeGreeting
           greetingX={greetingX}
           greetingY={greetingY}
           greetingText={greetingText}
@@ -437,12 +449,14 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
           greetingName={greetingName}
           greetingNameWidth={greetingNameWidth}
           greetingExcl={greetingExcl}
-          smFont={smFont}
+          mdFont={mdFont}
           boldmdFont={boldmdFont}
+          color={colors.background}
+        />
+        <GaugeText
           textTranslateX={textTranslateX}
           xlFontSize={xlFontSize}
           text={text}
-          font={xlFont}
           valueTextWidth={valueTextWidth}
           mlTextFontSize={mlTextFontSize}
           mlText={mlText}
@@ -451,7 +465,8 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
           waterRemainingTranslateX={waterRemainingTranslateX}
           waterRemainingText={waterRemainingText}
           waterRemainingTransform={waterRemainingTransform}
-          colors={colors}
+          xlFont={xlFont}
+          smFont={smFont}
           color={colors.background}
         />
       </Group>

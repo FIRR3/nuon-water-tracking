@@ -72,6 +72,7 @@ function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
 
 export default function Index() {
   const [currentWaterIntake, setCurrentWaterIntake] = useState(1000);
+  const [gaugeKey, setGaugeKey] = useState(0);
   let recommendedWaterIntake = 2400;
   let userName = "Firuz";
 
@@ -127,15 +128,15 @@ export default function Index() {
           <WaterAdjustModal 
             onClose={() => setModalOpen(false)} 
             onSave={(value) => {
-              // STEP 9: Use the selected value here
               setCurrentWaterIntake(prev => Math.max(0, prev + value));
-              // TODO: Update your water intake with this value
+              setGaugeKey(prev => prev + 1);
               setModalOpen(false);
             }}
           />
         </Modal>
 
         <LiquidProgressGauge
+          key={gaugeKey}
           width={windowWidth}
           height={windowHeight}
           value={currentWaterIntake}
