@@ -38,6 +38,9 @@ export const UIIcons = {
   chevronRight: (props: IconProps) => (
     <Feather name="chevron-right" size={20} {...props} />
   ),
+  chevronLeft: (props: IconProps) => (
+    <Feather name="chevron-left" size={20} {...props} />
+  ),
 } as const;
 
 // Status Icons (indicators, notifications)

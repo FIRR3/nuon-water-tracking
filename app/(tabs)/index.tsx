@@ -40,7 +40,7 @@ function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
 
         <Text className="text-center text-sm text-white font-poppins-semibold border-2 border-white w-12 p-1 mx-auto mt-[-12px]">ml</Text>
 
-        <Text className="text-white/40 text-sm text-center px-4 font-poppins-regular leading-tight">
+        <Text className="text-white/40 text-sm text-center font-poppins-regular leading-tight">
           *Your water bottle already tracks your water intake. Increase or decrease if needed.
         </Text>
       </View>
