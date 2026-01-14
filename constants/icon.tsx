@@ -1,5 +1,5 @@
 // constants/icons.ts
-import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
 
 // Type-safe icon props
 export type IconProps = {
@@ -11,65 +11,78 @@ export type IconProps = {
 // Tab Bar Icons (specific styling/size for tabs)
 export const TabIcons = {
   index: (props: IconProps) => (
-    <Feather name="droplet" size={24} {...props} />
+    <Feather name="droplet" size={24} color='white' {...props} />
   ),
   statistics: (props: IconProps) => (
-    <Feather name="bar-chart-2" size={24} {...props} />
+    <Feather name="bar-chart-2" size={24} color='white' {...props} />
   ),
   settings: (props: IconProps) => (
-    <Feather name="settings" size={24} {...props} />
+    <Feather name="settings" size={24} color='white' {...props} />
   ),
 } as const;
 
 // UI Icons (buttons, actions, etc.)
 export const UIIcons = {
   add: (props: IconProps) => (
-    <Feather name="plus-circle" size={20} {...props} />
+    <Feather name="plus-circle" size={24} color='white' {...props} />
   ),
   remove: (props: IconProps) => (
-    <Feather name="minus-circle" size={20} {...props} />
+    <Feather name="minus-circle" size={24} color='white' {...props} />
   ),
   close: (props: IconProps) => (
-    <Feather name="x" size={20} {...props} />
+    <Feather name="x" size={24} color='white' {...props} />
   ),
   check: (props: IconProps) => (
-    <Feather name="check" size={20} {...props} />
+    <Feather name="check" size={24} color='white' {...props} />
   ),
   chevronRight: (props: IconProps) => (
-    <Feather name="chevron-right" size={20} {...props} />
+    <Feather name="chevron-right" size={24} color='white' {...props} />
   ),
   chevronLeft: (props: IconProps) => (
-    <Feather name="chevron-left" size={20} {...props} />
+    <Feather name="chevron-left" size={24} color='white' {...props} />
   ),
 } as const;
 
 // Status Icons (indicators, notifications)
 export const StatusIcons = {
   success: (props: IconProps) => (
-    <Feather name="check-circle" size={24} color="#22c55e" {...props} />
+    <Feather name="check-circle" size={24} color='white' {...props} />
   ),
   error: (props: IconProps) => (
-    <Feather name="alert-circle" size={24} color="#ef4444" {...props} />
+    <Feather name="alert-circle" size={24} color='white' {...props} />
   ),
   warning: (props: IconProps) => (
-    <Feather name="alert-triangle" size={24} color="#f59e0b" {...props} />
+    <Feather name="alert-triangle" size={24} color='white' {...props} />
   ),
   info: (props: IconProps) => (
-    <Feather name="info" size={24} color="#3b82f6" {...props} />
+    <Feather name="info" size={24} color='white' {...props} />
   ),
 } as const;
 
-// Water-related Icons (app-specific)
-export const WaterIcons = {
-  bottle: (props: IconProps) => (
-    <MaterialIcons name="water-drop" size={24} {...props} />
-  ),
-  glass: (props: IconProps) => (
-    <Ionicons name="wine" size={24} {...props} />
+// App Icons (app-specific)
+export const AppIcons = {
+  profileAdd: (props: IconProps) => (
+    <Feather name="user-plus" size={20} color='white' {...props} />
   ),
   droplet: (props: IconProps) => (
-    <Feather name="droplet" size={24} {...props} />
+    <Feather name="droplet" size={20} color='white' {...props} />
   ),
+  activity: (props: IconProps) => (
+    <MaterialIcons name="directions-run" size={20} color='white' {...props} />
+  ),
+  profile: (props: IconProps) => (
+    <Feather name="user" size={20} color='white' {...props} />
+  ),
+  bell: (props: IconProps) => (
+    <Feather name="bell" size={20} color='white' {...props} />
+  ),
+  moon: (props: IconProps) => (
+    <Feather name="moon" size={20} color='white' {...props} />
+  ),
+  lock: (props: IconProps) => (
+    <Feather name="lock" size={20} color='white' {...props} />
+  ),
+
 } as const;
 
 // Export all icons
@@ -77,5 +90,5 @@ export const Icons = {
   tab: TabIcons,
   ui: UIIcons,
   status: StatusIcons,
-  water: WaterIcons,
+  app: AppIcons,
 } as const;

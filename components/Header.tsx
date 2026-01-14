@@ -20,7 +20,7 @@ const Header = ({ title, showBack = false }: Props) => {
   return (
     <View 
       style={{
-        height: scale(80) + insets.top, // Header height + status bar
+        height: scale(60) + insets.top, // Header height + status bar
         backgroundColor: darkColors.secondary,
         paddingTop: insets.top, // Push content below status bar
         justifyContent: 'center', // Align content to bottom
