@@ -1,4 +1,4 @@
-import { constantColors, darkColors } from "@/constants/colors";
+import Header from "@/components/Header";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import * as Font from 'expo-font';
 import { Stack } from "expo-router";
@@ -6,7 +6,6 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from "react";
 import { View } from "react-native";
 import './globals.css';
-import Header from "@/components/Header";
 
 const customFonts = {
   'Poppins-Regular': require('@/assets/fonts/Poppins/Poppins-Regular.ttf'),
@@ -54,6 +53,10 @@ export default function RootLayout() {
       >
         <Stack.Screen
           name="(tabs)"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="settings"
           options={{ headerShown: false }}
         />
       </Stack>

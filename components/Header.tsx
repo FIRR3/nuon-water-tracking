@@ -20,15 +20,19 @@ const Header = ({ title, showBack = false }: Props) => {
   return (
     <View 
       style={{
-        height: scale(60) + insets.top, // Header height + status bar
+        height: scale(55) + insets.top, // Header height + status bar
         backgroundColor: darkColors.secondary,
         paddingTop: insets.top, // Push content below status bar
         justifyContent: 'center', // Align content to bottom
-        paddingBottom: scale(13), // Distance from bottom
+        paddingBottom: scale(10), // Distance from bottom
         paddingHorizontal: scale(16),
         flexDirection: 'row',
         alignItems: 'flex-end',
         position: 'relative',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: 10,
+        shadowOpacity: 0.1,
       }}
     >
       {/* Back button */}

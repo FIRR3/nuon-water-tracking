@@ -1,5 +1,6 @@
 // constants/icons.ts
-import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { constantColors } from './colors';
 
 // Type-safe icon props
 export type IconProps = {
@@ -32,14 +33,26 @@ export const UIIcons = {
   close: (props: IconProps) => (
     <Feather name="x" size={24} color='white' {...props} />
   ),
-  check: (props: IconProps) => (
-    <Feather name="check" size={24} color='white' {...props} />
-  ),
   chevronRight: (props: IconProps) => (
-    <Feather name="chevron-right" size={24} color='white' {...props} />
+    <Feather name="chevron-right" size={20} color='white' {...props} />
   ),
   chevronLeft: (props: IconProps) => (
-    <Feather name="chevron-left" size={24} color='white' {...props} />
+    <Feather name="chevron-left" size={20} color='white' {...props} />
+  ),
+  toggleLeft: (props: IconProps) => (
+    <Ionicons name="toggle-outline" size={20} color='white' {...props} style={[ {transform: [{ rotate: '180deg' }]}, props.style ]} />
+  ),
+  toggleRight: (props: IconProps) => (
+    <Ionicons name="toggle" size={20} color={constantColors.accent} {...props} />
+  ),
+  checked: (props: IconProps) => (
+    <Ionicons name="checkmark-circle" size={20} color={constantColors.accent} {...props} />
+  ),
+  unChecked: (props: IconProps) => (
+    <Ionicons name="checkmark-circle-outline" size={20} color={constantColors.accent} {...props} />
+  ),
+  edit: (props: IconProps) => (
+    <Feather name="edit-2" size={20} color='white' {...props} />
   ),
 } as const;
 

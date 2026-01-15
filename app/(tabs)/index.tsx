@@ -99,6 +99,7 @@ export default function Index() {
     <ScreenBackgroundWrapper className="flex-1">
       <ScrollView
         scrollEnabled={!modalOpen}
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={{ flex: 1, flexGrow: 1, alignItems: "center", justifyContent: "center" }}
         refreshControl={
           <RefreshControl
