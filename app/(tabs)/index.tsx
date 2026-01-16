@@ -1,6 +1,7 @@
 import { getDropletPosition, LiquidProgressGauge } from "@/components/LiquidProgressGauge";
 import Modal from "@/components/Modal";
 import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
+import WeightScreen from "@/components/weight_tester";
 import { constantColors } from "@/constants/colors";
 import { UIIcons } from "@/constants/icon";
 import { useRouter } from 'expo-router';
@@ -71,7 +72,7 @@ function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
 }
 
 export default function Index() {
-  const [currentWaterIntake, setCurrentWaterIntake] = useState(1000);
+  const [currentWaterIntake, setCurrentWaterIntake] = useState(0);
   const [gaugeKey, setGaugeKey] = useState(0);
   let recommendedWaterIntake = 2400;
   let userName = "Firuz";
@@ -80,6 +81,11 @@ export default function Index() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const updateWaterIntake = (value: number) => {
+    setCurrentWaterIntake(prev => prev + value);
+    setGaugeKey(prev => prev + 1);
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -129,8 +135,7 @@ export default function Index() {
           <WaterAdjustModal 
             onClose={() => setModalOpen(false)} 
             onSave={(value) => {
-              setCurrentWaterIntake(prev => Math.max(0, prev + value));
-              setGaugeKey(prev => prev + 1);
+              updateWaterIntake(Math.max(0, currentWaterIntake + value));
               setModalOpen(false);
             }}
           />
@@ -144,8 +149,11 @@ export default function Index() {
           maxValue={recommendedWaterIntake}
           userName={userName}
         />
-
       </ScrollView>
+      <WeightScreen onUpdateTotal={updateWaterIntake} />
+
     </ScreenBackgroundWrapper>
+
+    
   );
 }

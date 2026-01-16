@@ -2,9 +2,9 @@
 import { appendRow, parseWeight, scanAndConnect } from '@/ble/bleservice.js';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useState } from 'react';
-import { Alert, PermissionsAndroid, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, PermissionsAndroid, Platform, StyleSheet, View } from 'react-native';
 
-export default function WeightScreen() {
+export default function WeightScreen({ onUpdateTotal }) {
   const [currentWeight, setCurrentWeight] = useState(0);
   const [totalWeight, setTotalWeight] = useState(0);
   const [status, setStatus] = useState('Initializing...');
@@ -60,6 +60,9 @@ export default function WeightScreen() {
 
         const total = await appendRow(grams);
         setTotalWeight(total);
+        if (onUpdateTotal) {
+          onUpdateTotal(grams);
+        }
       });
     };
 
@@ -70,10 +73,7 @@ export default function WeightScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Weight Tracker</Text>
-      <Text style={styles.status}>{status}</Text>
-      <Text style={styles.label}>Current Weight: {currentWeight.toFixed(1)} g</Text>
-      <Text style={styles.label}>Total Weight: {totalWeight.toFixed(1)} g</Text>
+      
     </View>
   );
 }
