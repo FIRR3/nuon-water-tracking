@@ -1,0 +1,17 @@
+Every 7 days, the app will expire and you'll need to rebuild it:
+1. Connect your iPhone via USB to your Mac
+2. Run: npx expo run:ios --Device
+
+Between rebuilds, you can develop normally over WiFi with:
+npm run dev
+npx expo start --dev-client
+
+
+For school computer:
+# Build Android app (works on any OS)
+eas build --profile development --platform android
+# Or locally: npx expo run:android
+
+# Then develop on your Asus
+npx expo start --dev-client
+# Connect your Android phone or use an emulator
