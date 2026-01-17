@@ -1,4 +1,5 @@
 import ScreenBackgroundWrapper from '@/components/ScreenBackgroundWrapper'
+import Section from '@/components/Section'
 import SettingsRow from '@/components/SettingsRow'
 import React from 'react'
 import { Text, View } from 'react-native'
@@ -17,7 +18,8 @@ const PersonalDetails = () => {
         <Text className='text-white text-md font-poppins-semibold'>Your info</Text>
         <Text className='text-white text-sm font-poppins'>This is what we use to calculate your daily water intake.</Text>
       </View>
-      <View className='mt-5 bg-dark-secondary px-5 py-5 gap-5'>
+      
+      <Section className='mt-5'>
         <SettingsRow showHR>
           <Text className='text-white text-[15px] font-poppins-medium'>Current weight</Text>
           <Text className='text-white text-[15px] font-poppins-semibold'>{currentWeight}kg</Text>
@@ -38,7 +40,7 @@ const PersonalDetails = () => {
           <Text className='text-white text-[15px] font-poppins-medium'>Activity level</Text>
           <Text className='text-white text-[15px] font-poppins-semibold'>{activityLevel}</Text>
         </SettingsRow>
-      </View>
+      </Section>
     </ScreenBackgroundWrapper>
   )
 }
