@@ -83,8 +83,7 @@ export default function Index() {
   const [refreshing, setRefreshing] = useState(false);
 
   const updateWaterIntake = (value: number) => {
-    setCurrentWaterIntake(prev => prev + value);
-    setGaugeKey(prev => prev + 1);
+    setCurrentWaterIntake(prev => Math.max(0, prev + value));
   };
 
   const onRefresh = async () => {
@@ -135,7 +134,7 @@ export default function Index() {
           <WaterAdjustModal 
             onClose={() => setModalOpen(false)} 
             onSave={(value) => {
-              updateWaterIntake(Math.max(0, currentWaterIntake + value));
+              updateWaterIntake(value);
               setModalOpen(false);
             }}
           />
