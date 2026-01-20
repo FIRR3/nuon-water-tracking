@@ -1,12 +1,7 @@
+import { darkColors } from "@/constants/colors";
 import React, { ReactNode } from "react";
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
-import { SafeAreaFrameContext, SafeAreaProvider } from "react-native-safe-area-context";
+import { Keyboard, TouchableWithoutFeedback, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 interface ScreenBackgroundWrapperProps {
   children: ReactNode;
@@ -20,14 +15,21 @@ const ScreenBackgroundWrapper = ({
   className = "",
 }: ScreenBackgroundWrapperProps) => {
   const content = (
-    <SafeAreaProvider className={`flex-1 bg-dark-primary ${className}`}>
+    <SafeAreaProvider
+      style={{ backgroundColor: darkColors.background }}
+      className={`flex-1 ${className}`}
+    >
       <View className="flex-1">{children}</View>
     </SafeAreaProvider>
   );
 
   if (dismissKeyboard) {
     return (
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <TouchableWithoutFeedback
+        style={{ backgroundColor: darkColors.background }}
+        onPress={Keyboard.dismiss}
+        accessible={false}
+      >
         {content}
       </TouchableWithoutFeedback>
     );
