@@ -4,8 +4,9 @@ import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
 import WeightScreen from "@/components/weight_tester";
 import { constantColors } from "@/constants/colors";
 import { UIIcons } from "@/constants/icon";
+import { addWaterEntry, getUserSettings, getWaterIntake, saveWaterIntake, UserSettings } from "@/services/storage";
 import { useRouter } from 'expo-router';
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Dimensions, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 
@@ -73,8 +74,9 @@ function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
 
 export default function Index() {
   const [currentWaterIntake, setCurrentWaterIntake] = useState(0);
+  const [userSettings, setUserSettings] = useState<UserSettings>({ recommendedWaterIntake: 2400, unit: 'ml' });
   const [gaugeKey, setGaugeKey] = useState(0);
-  let recommendedWaterIntake = 2400;
+  let recommendedWaterIntake = userSettings.recommendedWaterIntake;
   let userName = "Firuz";
 
   const router = useRouter();
@@ -82,8 +84,49 @@ export default function Index() {
   const [modalOpen, setModalOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const updateWaterIntake = (value: number) => {
-    setCurrentWaterIntake(prev => Math.max(0, prev + value));
+  // Load data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [waterIntake, settings] = await Promise.all([
+          getWaterIntake(),
+          getUserSettings()
+        ]);
+        setCurrentWaterIntake(waterIntake);
+        setUserSettings(settings);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Save water intake whenever it changes
+  useEffect(() => {
+    const saveData = async () => {
+      try {
+        await saveWaterIntake(currentWaterIntake);
+      } catch (error) {
+        console.error('Error saving water intake:', error);
+      }
+    };
+
+    saveData();
+  }, [currentWaterIntake]);
+
+  const updateWaterIntake = async (value: number) => {
+    const newIntake = Math.max(0, currentWaterIntake + value);
+    setCurrentWaterIntake(newIntake);
+
+    // Also add to history if it's a positive addition
+    if (value > 0) {
+      try {
+        await addWaterEntry(value);
+      } catch (error) {
+        console.error('Error adding water entry:', error);
+      }
+    }
   };
 
   const onRefresh = async () => {

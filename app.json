@@ -45,7 +45,15 @@
           }
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableHermes": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
