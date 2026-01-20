@@ -2,6 +2,7 @@ import { IconProps, UIIcons } from '@/constants/icon';
 import { Href, Link } from 'expo-router';
 import React from 'react';
 import { TouchableOpacity, View } from 'react-native';
+import { scale } from 'react-native-size-matters';
 
 type SettingsRowProps = {
   children: React.ReactNode;
@@ -17,7 +18,7 @@ export const SettingsRow = ({children, linkTo, showHR = false, icon: Icon, onPre
     return (
       <>
         <Link href={linkTo} asChild>
-          <TouchableOpacity className={`flex-row justify-between items-center w-full ${Icon && 'pl-9'}`}>
+          <TouchableOpacity style={{ height: scale(35) }} className={`flex-row justify-between items-center w-full ${Icon && 'pl-9'}`}>
             {Icon && <Icon style={{ position: 'absolute' }} />}
             {children}
             <UIIcons.chevronRight/>
@@ -29,16 +30,20 @@ export const SettingsRow = ({children, linkTo, showHR = false, icon: Icon, onPre
   }
 
   else if (onPress) {
-    <TouchableOpacity onPress={onPress} className={`flex-row justify-between items-center w-full ${Icon && 'pl-9'}`}>
-      {Icon && <Icon style={{ position: 'absolute' }} />}
-      {children}
-    </TouchableOpacity>  
-    {showHR && <View className="h-[1px] bg-white w-full"></View>}
+      return (
+        <>
+          <TouchableOpacity style={{ height: scale(35) }} onPress={onPress} className={`flex-row justify-between items-center w-full ${Icon && 'pl-9'}`}>
+            {Icon && <Icon style={{ position: 'absolute' }} />}
+            {children}
+          </TouchableOpacity>  
+          {showHR && <View className="h-[1px] bg-white w-full"></View>}
+        </>
+      )
   }
 
   return(
     <>
-      <View className={`flex-row justify-between items-center w-full min-h-6 ${Icon && 'pl-9'}`}>
+      <View style={{ height: scale(35) }} className={`flex-row justify-between items-center w-full min-h-6 ${Icon && 'pl-9'}`}>
         {Icon && <Icon style={{ position: 'absolute' }} />}
         {children}
       </View>

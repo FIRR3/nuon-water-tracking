@@ -1,21 +1,18 @@
 import { UIIcons } from '@/constants/icon';
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable } from 'react-native';
 import { scale } from 'react-native-size-matters';
 
 type Props = {
+  isToggled: boolean;
   onPress?: () => void;
 }
 
-const ToggleButton = ({ onPress }: Props) => {
-  const [isToggled, setIsToggled] = useState(false)
+const ToggleButton = ({ isToggled, onPress }: Props) => {
 
   return (
     <Pressable
-      onPress={() => {
-        onPress
-        setIsToggled(prev => !prev)
-      }}
+      onPress={() => {onPress}}
       style={{ 
         display: 'flex',
         alignItems: 'flex-end', 
