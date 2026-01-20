@@ -1,7 +1,8 @@
 import Header from "@/components/Header";
+import { useAuth } from '@/hooks/useAuth';
 import { useThemeColors } from "@/hooks/useThemeColors";
 import * as Font from 'expo-font';
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -15,8 +16,33 @@ const customFonts = {
 };
 
 export default function RootLayout() {
+  const { isLoggedIn, hasCompletedOnboarding } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
   const colors = useThemeColors();
   const [appIsReady, setAppIsReady] = useState(false);
+
+  useEffect(() => {
+    if (!appIsReady) return;
+    
+    const inAuthGroup = segments[0] === '(auth)';
+    const inOnboardingGroup = segments[0] === '(onboarding)';
+    
+    setTimeout(() => {
+      // Not logged in → signup
+      if (!isLoggedIn && !inAuthGroup) {
+        router.replace('/(auth)/signup');
+      } 
+      // Logged in but haven't done onboarding → onboarding
+      else if (isLoggedIn && !hasCompletedOnboarding && !inOnboardingGroup) {
+        router.replace('/(onboarding)');
+      } 
+      // Logged in and onboarded → main app
+      else if (isLoggedIn && hasCompletedOnboarding && (inAuthGroup || inOnboardingGroup)) {
+        router.replace('/(tabs)');
+      }
+    }, 0);
+  }, [isLoggedIn, hasCompletedOnboarding, segments, appIsReady]);
 
   useEffect(() => {
     async function prepare() {
@@ -54,6 +80,14 @@ export default function RootLayout() {
         <Stack.Screen
           name="(tabs)"
           options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="(auth)"
+          options={{ headerShown: false }} 
+        />
+        <Stack.Screen
+          name="(onboarding)"
+          options={{ headerShown: false }} 
         />
         <Stack.Screen
           name="settings"
