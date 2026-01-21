@@ -1,12 +1,41 @@
-import { useThemeColors } from "@/hooks/useThemeColors";
-import React from "react";
-import { View, ViewProps } from "react-native";
+import { darkColors } from "@/constants/colors";
+import React, { ReactNode } from "react";
+import { Keyboard, TouchableWithoutFeedback, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
-export default function ScreenBackgroundWrapper({ children, style, ...props }: ViewProps) {
-  const colors = useThemeColors();
-  return (
-    <View style={[{ flex: 1, backgroundColor: colors.background}, style]} {...props}>
-      {children}
-    </View>
-  );
+interface ScreenBackgroundWrapperProps {
+  children: ReactNode;
+  dismissKeyboard?: boolean;
+  className?: string;
 }
+
+const ScreenBackgroundWrapper = ({
+  children,
+  dismissKeyboard = false,
+  className = "",
+}: ScreenBackgroundWrapperProps) => {
+  const content = (
+    <SafeAreaProvider
+      style={{ backgroundColor: darkColors.background }}
+      className={`flex-1 ${className}`}
+    >
+      <View className="flex-1">{children}</View>
+    </SafeAreaProvider>
+  );
+
+  if (dismissKeyboard) {
+    return (
+      <TouchableWithoutFeedback
+        style={{ backgroundColor: darkColors.background }}
+        onPress={Keyboard.dismiss}
+        accessible={false}
+      >
+        {content}
+      </TouchableWithoutFeedback>
+    );
+  }
+
+  return content;
+};
+
+export default ScreenBackgroundWrapper;

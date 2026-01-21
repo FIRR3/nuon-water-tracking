@@ -24,7 +24,7 @@ const Settings = () => {
   let activityLevel = 'moderate';
 
   return (
-    <ScreenBackgroundWrapper >
+    <ScreenBackgroundWrapper>
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
