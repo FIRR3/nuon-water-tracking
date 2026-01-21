@@ -137,3 +137,42 @@ export const clearAllData = async (): Promise<void> => {
     throw new Error(`Failed to clear data: ${e instanceof Error ? e.message : String(e)}`);
   }
 };
+
+// Add this function to your storage.ts file
+
+export const removeWaterAmount = async (amount: number): Promise<void> => {
+  const history = await getWaterHistory();
+  const today = new Date().toISOString().split('T')[0];
+
+  if (!history[today] || history[today].length === 0) {
+    // No entries to remove from
+    return;
+  }
+
+  let remainingToRemove = amount;
+  const entries = history[today];
+
+  // Remove from the most recent entries first
+  for (let i = entries.length - 1; i >= 0 && remainingToRemove > 0; i--) {
+    const entry = entries[i];
+    
+    if (entry.amount <= remainingToRemove) {
+      // Remove entire entry
+      remainingToRemove -= entry.amount;
+      entries.splice(i, 1);
+    } else {
+      // Partially reduce this entry
+      entry.amount -= remainingToRemove;
+      remainingToRemove = 0;
+    }
+  }
+
+  // If no entries left for today, remove the day entry
+  if (entries.length === 0) {
+    delete history[today];
+  } else {
+    history[today] = entries;
+  }
+
+  await saveWaterHistory(history);
+};

@@ -4,9 +4,9 @@ import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
 import WeightScreen from "@/components/weight_tester";
 import { constantColors } from "@/constants/colors";
 import { UIIcons } from "@/constants/icon";
-import { addWaterEntry, getUserSettings, getWaterIntake, saveWaterIntake, UserSettings } from "@/services/storage";
+import { addWaterEntry, getUserSettings, getTodayWaterIntake, removeWaterAmount, UserSettings } from "@/services/storage";import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Dimensions, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 
@@ -84,12 +84,22 @@ export default function Index() {
   const [modalOpen, setModalOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Function to refresh water intake from storage
+  const refreshWaterIntake = async () => {
+    try {
+      const intake = await getTodayWaterIntake();
+      setCurrentWaterIntake(intake);
+    } catch (error) {
+      console.error('Error refreshing water intake:', error);
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
     const loadData = async () => {
       try {
         const [waterIntake, settings] = await Promise.all([
-          getWaterIntake(),
+          getTodayWaterIntake(),
           getUserSettings()
         ]);
         setCurrentWaterIntake(waterIntake);
@@ -102,40 +112,50 @@ export default function Index() {
     loadData();
   }, []);
 
-  // Save water intake whenever it changes
-  useEffect(() => {
-    const saveData = async () => {
-      try {
-        await saveWaterIntake(currentWaterIntake);
-      } catch (error) {
-        console.error('Error saving water intake:', error);
-      }
-    };
+  // Refresh water intake when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refreshWaterIntake();
+    }, [])
+  );
 
-    saveData();
-  }, [currentWaterIntake]);
-
-  const updateWaterIntake = async (value: number) => {
-    const newIntake = Math.max(0, currentWaterIntake + value);
-    setCurrentWaterIntake(newIntake);
-
-    // Also add to history if it's a positive addition
-    if (value > 0) {
-      try {
-        await addWaterEntry(value);
-      } catch (error) {
-        console.error('Error adding water entry:', error);
-      }
+const updateWaterIntake = async (value: number) => {
+  if (value > 0) {
+    // Adding water
+    try {
+      await addWaterEntry(value);
+      // Refresh from storage to get the actual total
+      await refreshWaterIntake();
+      setGaugeKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Error adding water entry:', error);
     }
-  };
+  } else if (value < 0) {
+    // Removing water
+    try {
+      await removeWaterAmount(Math.abs(value));
+      // Refresh from storage to get the actual total
+      await refreshWaterIntake();
+      setGaugeKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Error removing water entry:', error);
+    }
+  }
+};
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Add your refresh logic here (fetch data, etc.)
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate refresh delay
-
+    // Refresh water intake from storage
+    await refreshWaterIntake();
+    // Reload user settings in case they changed
+    try {
+      const settings = await getUserSettings();
+      setUserSettings(settings);
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
     setRefreshing(false);
-  }
+  };
 
   const windowWidth = Dimensions.get("window").width;
   const windowHeight = Dimensions.get("window").height;
@@ -155,8 +175,6 @@ export default function Index() {
             onRefresh={onRefresh}
           />
         }
-        // bounces={false}
-        // overScrollMode="never"
       >
         <TouchableOpacity
           style={{ 
