@@ -1,15 +1,61 @@
 import ScreenBackgroundWrapper from '@/components/ScreenBackgroundWrapper'
 import { constantColors, darkColors } from '@/constants/colors'
+import { getUserSettings, saveUserSettings, UserSettings } from '@/services/storage'
 import Slider from '@react-native-community/slider'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
 
 const WaterSettings = () => {
 
-  const recommendedWaterIntake = 2.4;
   const maxValue = 5;
+  const [sliderState, setSliderState] = useState<number>(2.4);
+  const [userSettings, setUserSettings] = useState<UserSettings>({ recommendedWaterIntake: 2400, unit: 'ml' });
 
-  const [sliderState, setSliderState] = useState<number>(recommendedWaterIntake);
+  // Load settings on component mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await getUserSettings();
+        setUserSettings(settings);
+        setSliderState(settings.recommendedWaterIntake / 1000); // Convert ml to liters for slider
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  // Save settings when slider changes
+  const handleSliderChange = async (value: number) => {
+    setSliderState(value);
+    const newSettings: UserSettings = {
+      ...userSettings,
+      recommendedWaterIntake: Math.round(value * 1000) // Convert liters to ml
+    };
+    setUserSettings(newSettings);
+
+    try {
+      await saveUserSettings(newSettings);
+    } catch (error) {
+      console.error('Error saving settings:', error);
+    }
+  };
+
+  const resetToDefault = async () => {
+    const defaultSettings: UserSettings = {
+      recommendedWaterIntake: 2400,
+      unit: 'ml'
+    };
+    setUserSettings(defaultSettings);
+    setSliderState(2.4);
+
+    try {
+      await saveUserSettings(defaultSettings);
+    } catch (error) {
+      console.error('Error resetting settings:', error);
+    }
+  };
 
   return (
     <ScreenBackgroundWrapper className='pt-10 gap-28'>
@@ -35,7 +81,7 @@ const WaterSettings = () => {
           </Text>
           <Slider
             value={sliderState}
-            onValueChange={(value) => setSliderState(value)}
+            onValueChange={handleSliderChange}
             minimumValue={0}
             maximumValue={maxValue}
             minimumTrackTintColor={constantColors.accent}
@@ -45,7 +91,7 @@ const WaterSettings = () => {
       </View>
 
       <View className='gap-[2px]'>
-        <TouchableOpacity className='bg-dark-secondary px-5 py-6'>
+        <TouchableOpacity className='bg-dark-secondary px-5 py-6' onPress={resetToDefault}>
           <Text className='text-red-600 font-poppins text-center'>Reset to app recommendation</Text>
         </TouchableOpacity>
         <TouchableOpacity className='bg-dark-secondary px-5 py-6'>

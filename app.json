@@ -46,6 +46,14 @@
         }
       ],
       "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableHermes": true
+          }
+        }
+      ]
       "@react-native-community/datetimepicker"
     ],
     "experiments": {

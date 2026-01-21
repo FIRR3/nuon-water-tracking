@@ -1,16 +1,33 @@
 import ScreenBackgroundWrapper from '@/components/ScreenBackgroundWrapper'
 import Section from '@/components/Section'
 import SettingsRow from '@/components/SettingsRow'
-import React from 'react'
+import { getPersonalDetails, PersonalDetails as PersonalDetailsType } from '@/services/storage'
+import React, { useEffect, useState } from 'react'
 import { Text, View } from 'react-native'
 
 const PersonalDetails = () => {
 
-  const currentWeight = 72;
-  const height = 1.81;
-  const dateOfBirth = '2007-08-12';
-  const gender = 'Male';
-  const activityLevel = 'Moderate';
+  const [personalDetails, setPersonalDetails] = useState<PersonalDetailsType | null>(null);
+
+  useEffect(() => {
+    const loadPersonalDetails = async () => {
+      try {
+        const details = await getPersonalDetails();
+        setPersonalDetails(details);
+      } catch (error) {
+        console.error('Error loading personal details:', error);
+      }
+    };
+
+    loadPersonalDetails();
+  }, []);
+
+  // Default values if no data is stored
+  const currentWeight = personalDetails?.currentWeight || 72;
+  const height = personalDetails?.height || 1.81;
+  const dateOfBirth = personalDetails?.dateOfBirth || '2007-08-12';
+  const gender = personalDetails?.gender || 'Male';
+  const activityLevel = personalDetails?.activityLevel || 'Moderate';
 
   return (
     <ScreenBackgroundWrapper className='pt-10'>

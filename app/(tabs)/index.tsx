@@ -4,8 +4,9 @@ import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
 import WeightScreen from "@/components/weight_tester";
 import { constantColors } from "@/constants/colors";
 import { UIIcons } from "@/constants/icon";
+import { addWaterEntry, getUserSettings, getTodayWaterIntake, removeWaterAmount, UserSettings } from "@/services/storage";import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Dimensions, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 
@@ -73,8 +74,9 @@ function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
 
 export default function Index() {
   const [currentWaterIntake, setCurrentWaterIntake] = useState(0);
+  const [userSettings, setUserSettings] = useState<UserSettings>({ recommendedWaterIntake: 2400, unit: 'ml' });
   const [gaugeKey, setGaugeKey] = useState(0);
-  let recommendedWaterIntake = 2400;
+  let recommendedWaterIntake = userSettings.recommendedWaterIntake;
   let userName = "Firuz";
 
   const router = useRouter();
@@ -82,17 +84,78 @@ export default function Index() {
   const [modalOpen, setModalOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const updateWaterIntake = (value: number) => {
-    setCurrentWaterIntake(prev => Math.max(0, prev + value));
+  // Function to refresh water intake from storage
+  const refreshWaterIntake = async () => {
+    try {
+      const intake = await getTodayWaterIntake();
+      setCurrentWaterIntake(intake);
+    } catch (error) {
+      console.error('Error refreshing water intake:', error);
+    }
   };
+
+  // Load data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [waterIntake, settings] = await Promise.all([
+          getTodayWaterIntake(),
+          getUserSettings()
+        ]);
+        setCurrentWaterIntake(waterIntake);
+        setUserSettings(settings);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Refresh water intake when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refreshWaterIntake();
+    }, [])
+  );
+
+const updateWaterIntake = async (value: number) => {
+  if (value > 0) {
+    // Adding water
+    try {
+      await addWaterEntry(value);
+      // Refresh from storage to get the actual total
+      await refreshWaterIntake();
+      setGaugeKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Error adding water entry:', error);
+    }
+  } else if (value < 0) {
+    // Removing water
+    try {
+      await removeWaterAmount(Math.abs(value));
+      // Refresh from storage to get the actual total
+      await refreshWaterIntake();
+      setGaugeKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Error removing water entry:', error);
+    }
+  }
+};
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Add your refresh logic here (fetch data, etc.)
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate refresh delay
-
+    // Refresh water intake from storage
+    await refreshWaterIntake();
+    // Reload user settings in case they changed
+    try {
+      const settings = await getUserSettings();
+      setUserSettings(settings);
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
     setRefreshing(false);
-  }
+  };
 
   const windowWidth = Dimensions.get("window").width;
   const windowHeight = Dimensions.get("window").height;
@@ -112,8 +175,6 @@ export default function Index() {
             onRefresh={onRefresh}
           />
         }
-        // bounces={false}
-        // overScrollMode="never"
       >
         <TouchableOpacity
           style={{ 
