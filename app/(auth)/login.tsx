@@ -1,9 +1,15 @@
+// app/(auth)/login.tsx
 import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
 import { useAuth } from "@/hooks/useAuth";
-import { account } from "@/services/appwrite";
+import {
+  account,
+  DATABASE_ID,
+  databases,
+  USERS_TABLE_ID,
+} from "@/services/appwrite";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -17,7 +23,7 @@ import {
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { login, completeOnboarding } = useAuth();
   const router = useRouter();
 
   const authBackground = require("../../assets/images/auth-background.png");
@@ -26,6 +32,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const passwordRef = useRef<TextInput>(null);
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Error", "Please fill in all fields");
@@ -33,10 +41,29 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
-
     try {
+      // Create session
       await account.createEmailPasswordSession(email, password);
-      login();
+
+      // Get current user
+      const user = await account.get();
+
+      // Get user document to check onboarding status
+      const userDoc = await databases.getDocument(
+        DATABASE_ID,
+        USERS_TABLE_ID,
+        user.$id,
+      );
+
+      // Update local auth state
+      login(user.$id);
+
+      // Update onboarding status if they've already completed it
+      if (userDoc.hasCompletedOnboarding) {
+        completeOnboarding();
+      }
+
+      // Root layout will redirect based on onboarding status
     } catch (error: any) {
       Alert.alert("Login Failed", error.message);
     } finally {
@@ -76,6 +103,9 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 placeholderTextColor={"gray"}
                 className="text-white font-poppins"
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                submitBehavior="blurAndSubmit"
               />
             </Animated.View>
 
@@ -84,16 +114,18 @@ export default function LoginScreen() {
               className="bg-dark-secondary p-5 rounded-lg w-full mb-3"
             >
               <TextInput
+                ref={passwordRef}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Password"
-                keyboardType="visible-password"
                 autoCapitalize="none"
                 secureTextEntry
+                textContentType="oneTimeCode"
                 placeholderTextColor={"gray"}
-                className="text-white font-poppins"
-                returnKeyType="go"
+                returnKeyType="done"
                 onSubmitEditing={handleLogin}
+                autoCorrect={false}
+                className="text-white font-poppins"
               />
             </Animated.View>
 
@@ -107,13 +139,13 @@ export default function LoginScreen() {
                 className="w-full bg-dark-accent p-3 rounded-2xl mb-3"
               >
                 <Text className="text-md font-poppins-semibold text-white text-center">
-                  {loading ? "Logging in..." : "Log in"}
+                  {loading ? "Logging in..." : "Login"}
                 </Text>
               </TouchableOpacity>
             </Animated.View>
 
             <Animated.View
-              entering={FadeInDown.delay(600).duration(1000).springify()}
+              entering={FadeInDown.delay(500).duration(1000).springify()}
               className="flex-row justify-center"
             >
               <Text className="text-white font-poppins">
