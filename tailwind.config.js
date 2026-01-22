@@ -14,6 +14,7 @@ module.exports = {
         'poppins-medium': ["Poppins-Medium"],
         'poppins-semibold': ["Poppins-Semibold"],
         'poppins-bold': ["Poppins-Bold"],
+        museoModerno: ['MuseoModerno-Regular'],
       },
       fontSize: {
         xs: 12,

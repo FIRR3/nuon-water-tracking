@@ -11,8 +11,6 @@ export default function OnboardingScreen() {
 
   const [step, setStep] = useState(1);
   const [userData, setUserData] = useState({
-    name: "",
-    age: "",
     weight: "",
     height: "",
     gender: "",
@@ -46,8 +44,8 @@ export default function OnboardingScreen() {
     return (
       <ScreenBackgroundWrapper>
         <View className="flex-1 justify-center items-center p-4">
-          <Text className="text-white text-3xl font-poppins-bold mb-4">
-            Welcome!
+          <Text className="text-white text-xl font-poppins mb-4">
+            Welcome to
           </Text>
           <Text className="text-white text-lg font-poppins mb-8">
             Let's personalize your experience

@@ -8,6 +8,11 @@
     "scheme": "nuonwatertracking",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.benjiboy160.nuonwatertracking",
@@ -21,6 +26,10 @@
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icons/icon.png",
+        "backgroundColor": "#ffffff"
+      },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.benjiboy160.nuonwatertracking"
@@ -33,18 +42,6 @@
     "plugins": [
       "expo-router",
       "expo-dev-client",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/icons/icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
-        }
-      ],
       "expo-web-browser",
       [
         "expo-build-properties",

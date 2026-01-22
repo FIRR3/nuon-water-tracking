@@ -19,6 +19,8 @@ const customFonts = {
   "Poppins-Medium": require("@/assets/fonts/Poppins/Poppins-Medium.ttf"),
   "Poppins-SemiBold": require("@/assets/fonts/Poppins/Poppins-SemiBold.ttf"),
   "Poppins-Bold": require("@/assets/fonts/Poppins/Poppins-Bold.ttf"),
+
+  "MuseoModerno-Regular": require('@/assets/fonts/MuseoModerno/MuseoModerno-Regular.ttf')
 };
 
 export default function RootLayout() {
