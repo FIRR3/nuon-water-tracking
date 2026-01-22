@@ -33,6 +33,15 @@ export const UIIcons = {
   close: (props: IconProps) => (
     <Feather name="x" size={24} color="white" {...props} />
   ),
+  arrowRight: (props: IconProps) => (
+    <Feather name="arrow-right" size={20} color="white" {...props} />
+  ),
+  arrowLeft: (props: IconProps) => (
+    <Feather name="arrow-left" size={20} color="white" {...props} />
+  ),
+  arrowUpRight: (props: IconProps) => (
+    <Feather name="arrow-up-right" size={20} color="white" {...props} />
+  ),
   chevronRight: (props: IconProps) => (
     <Feather name="chevron-right" size={20} color="white" {...props} />
   ),
