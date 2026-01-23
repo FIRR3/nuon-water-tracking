@@ -166,7 +166,7 @@ export default function SignupScreen() {
                   onChangeText={setFirstName}
                   placeholder="First Name"
                   placeholderTextColor={"gray"}
-                  className="text-white font-poppins"
+                  className="text-white font-poppins w-full"
                   returnKeyType="next"
                   onSubmitEditing={() => lastNameRef.current?.focus()}
                   submitBehavior="blurAndSubmit"
@@ -183,7 +183,7 @@ export default function SignupScreen() {
                   onChangeText={setLastName}
                   placeholder="Last Name"
                   placeholderTextColor={"gray"}
-                  className="text-white font-poppins"
+                  className="text-white font-poppins w-full"
                   onSubmitEditing={() => {
                     {
                       toggleDatePicker();
@@ -242,7 +242,7 @@ export default function SignupScreen() {
                     placeholderTextColor={"gray"}
                     editable={false}
                     onPressIn={toggleDatePicker}
-                    className="text-white font-poppins"
+                    className="text-white font-poppins w-full"
                     submitBehavior="blurAndSubmit"
                   />
                 </Pressable>
@@ -261,7 +261,7 @@ export default function SignupScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 placeholderTextColor={"gray"}
-                className="text-white font-poppins"
+                className="text-white font-poppins w-full"
                 returnKeyType="next"
                 onSubmitEditing={() => passwordRef.current?.focus()}
                 submitBehavior="blurAndSubmit"
@@ -280,7 +280,7 @@ export default function SignupScreen() {
                 autoCapitalize="none"
                 secureTextEntry
                 placeholderTextColor={"gray"}
-                className="text-white font-poppins"
+                className="text-white font-poppins w-full"
                 returnKeyType="done"
                 onSubmitEditing={handleSignup}
               />
