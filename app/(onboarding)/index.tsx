@@ -16,12 +16,13 @@ import React, { useRef, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import Animated, {
   FadeIn,
@@ -32,7 +33,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { scale } from "react-native-size-matters";
 import Arrow from "../../assets/images/arrow.svg";
-import Encircle from "../../assets/images/encircle.svg";
 import Underline1 from "../../assets/images/underline.svg";
 
 
@@ -48,6 +48,7 @@ export default function OnboardingScreen() {
   const [height, setHeight] = useState("");
   const [gender, setGender] = useState("");
   const [showGenderPicker, setShowGenderPicker] = useState(false);
+  const [tempGender, setTempGender] = useState("");
   const [activityLevel, setActivityLevel] = useState("");
 
   const heightRef = useRef<TextInput>(null);
@@ -72,25 +73,19 @@ export default function OnboardingScreen() {
   ];
 
   const toggleGenderPicker = () => {
+    if (!showGenderPicker) {
+      setTempGender(gender);
+    }
     setShowGenderPicker((prev) => !prev);
   };
-  //might be needed for android
-  const handleGenderChange = ({ type }: any, selectedGender: any) => {
-    if (type == "set") {
-      const currentGender = selectedGender;
-      setGender(currentGender);
 
-      if (Platform.OS === "android") {
-        toggleGenderPicker();
-        // Use local Gender methods
-        setGender(currentGender);
-      }
-    } else {
-      toggleGenderPicker();
-    }
+  const confirmGender = () => {
+    setGender(tempGender);
+    toggleGenderPicker();
   };
-  const confirmGenderIOS = () => {
-    setGender(gender);
+
+  const cancelGender = () => {
+    setTempGender(gender);
     toggleGenderPicker();
   };
 
@@ -282,20 +277,132 @@ export default function OnboardingScreen() {
               </Text>
             </Animated.View>
 
-            {showGenderPicker && (
+            {/* iOS Picker */}
+            {showGenderPicker && Platform.OS === "ios" && (
               <Animated.View
                 entering={FadeInDown.duration(1000).springify()}
                 className="my-[-20px]"
               >
                 <Picker
-                  selectedValue={gender}
-                  onValueChange={(value) => setGender(value)}
+                  selectedValue={tempGender}
+                  onValueChange={(value) => setTempGender(value)}
                 >
-                  <Picker.Item label="Gender" value="" />
+                  <Picker.Item label="Select Gender" value="" />
                   <Picker.Item label="Male" value="Male" />
                   <Picker.Item label="Female" value="Female" />
                 </Picker>
               </Animated.View>
+            )}
+
+            {/* Android Modal Picker */}
+            {Platform.OS === "android" && (
+              <Modal
+                visible={showGenderPicker}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={cancelGender}
+              >
+                <Pressable
+                  className="flex-1 justify-end bg-black/50"
+                  onPress={cancelGender}
+                >
+                  <Pressable
+                    className="bg-dark-secondary rounded-t-3xl"
+                    onPress={(e) => e.stopPropagation()}
+                  >
+                    {/* Wheel Picker Container */}
+                    <View className="h-[280px] overflow-hidden">
+                      {/* Center selection indicator */}
+                      <View className="absolute top-[50%] left-0 right-0 h-[60px] mt-[-30px] border-t border-b border-gray-500/30 bg-dark-accent/10" />
+                      
+                      {/* Scrollable options */}
+                      <View className="h-full justify-center">
+                        {/* Top padding item */}
+                        <View className="h-[60px] justify-center">
+                          <Text className="text-center text-gray-600 text-base font-poppins">
+                            {" "}
+                          </Text>
+                        </View>
+                        
+                        {/* Select Gender */}
+                        <TouchableOpacity
+                          onPress={() => setTempGender("")}
+                          className="h-[60px] justify-center"
+                        >
+                          <Text
+                            className={`text-center text-md font-poppins ${
+                              tempGender === ""
+                                ? "text-white font-poppins-semibold"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            Select Gender
+                          </Text>
+                        </TouchableOpacity>
+
+                        {/* Male */}
+                        <TouchableOpacity
+                          onPress={() => setTempGender("Male")}
+                          className="h-[60px] justify-center"
+                        >
+                          <Text
+                            className={`text-center text-md font-poppins ${
+                              tempGender === "Male"
+                                ? "text-white font-poppins-semibold"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            Male
+                          </Text>
+                        </TouchableOpacity>
+
+                        {/* Female */}
+                        <TouchableOpacity
+                          onPress={() => setTempGender("Female")}
+                          className="h-[60px] justify-center"
+                        >
+                          <Text
+                            className={`text-center text-md font-poppins ${
+                              tempGender === "Female"
+                                ? "text-white font-poppins-semibold"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            Female
+                          </Text>
+                        </TouchableOpacity>
+
+                        {/* Bottom padding item */}
+                        <View className="h-[60px] justify-center">
+                          <Text className="text-center text-gray-600 text-base font-poppins">
+                            {" "}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Action Buttons */}
+                    <View className="flex-row gap-3 p-6 pt-4">
+                      <TouchableOpacity
+                        onPress={cancelGender}
+                        className="flex-1 border-2 border-light-secondary py-3 px-4 rounded-xl"
+                      >
+                        <Text className="text-white text-center text-md font-poppins-medium">
+                          Cancel
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={confirmGender}
+                        className="flex-1 bg-dark-accent py-3 px-4 rounded-xl"
+                      >
+                        <Text className="text-white text-center text-md font-poppins-medium">
+                          Confirm
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </Pressable>
+                </Pressable>
+              </Modal>
             )}
 
             {showGenderPicker && Platform.OS === "ios" && (
@@ -312,7 +419,7 @@ export default function OnboardingScreen() {
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={confirmGenderIOS}
+                  onPress={confirmGender}
                   className="flex-1 bg-dark-accent py-[12px] px-4 rounded-xl"
                 >
                   <Text className="text-white text-center text-md font-poppins-medium">
@@ -343,7 +450,7 @@ export default function OnboardingScreen() {
             )}
           </View>
 
-          {!showGenderPicker && Platform.OS === "ios" && (
+          {!showGenderPicker && (
             <>
               <Animated.View
                 entering={FadeInRight.delay(800).duration(1000).springify()}

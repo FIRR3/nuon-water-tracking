@@ -163,6 +163,8 @@ const updateWaterIntake = async (value: number) => {
   // Position of water droplet SVG from LiquidProgressGauge
   const { size: dropletSize, positionX: dropletPositionX, positionY: dropletPositionY } = getDropletPosition(windowWidth, windowHeight);
 
+
+  console.log("Rendering Index with currentWaterIntake:", currentWaterIntake);
   return (
     <ScreenBackgroundWrapper className="flex-1">
       <ScrollView
@@ -209,6 +211,7 @@ const updateWaterIntake = async (value: number) => {
           maxValue={recommendedWaterIntake}
           userName={userName}
         />
+        
       </ScrollView>
       <WeightScreen onUpdateTotal={updateWaterIntake} />
 
