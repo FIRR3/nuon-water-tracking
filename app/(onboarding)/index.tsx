@@ -39,7 +39,6 @@ import Underline1 from "../../assets/images/underline.svg";
 import Image1 from "../../assets/images/water-drinking.svg";
 
 export default function OnboardingScreen() {
-  const { completeOnboarding } = useAuth();
   const router = useRouter();
 
   const [step, setStep] = useState(1);
