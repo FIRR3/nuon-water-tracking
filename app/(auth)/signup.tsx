@@ -60,7 +60,7 @@ export default function SignupScreen() {
         setDateOfBirth(
           `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`,
         );
-        emailRef.current?.focus();
+        !email && emailRef.current?.focus();
       }
     } else {
       toggleDatePicker();
@@ -72,7 +72,7 @@ export default function SignupScreen() {
     );
     toggleDatePicker();
 
-    emailRef.current?.focus();
+    !email && emailRef.current?.focus();
   };
 
   const handleSignup = async () => {
@@ -168,7 +168,9 @@ export default function SignupScreen() {
                   placeholderTextColor={"gray"}
                   className="text-white font-poppins w-full"
                   returnKeyType="next"
-                  onSubmitEditing={() => lastNameRef.current?.focus()}
+                  onSubmitEditing={() =>
+                    !lastName && lastNameRef.current?.focus()
+                  }
                   submitBehavior="blurAndSubmit"
                 />
               </Animated.View>
@@ -184,11 +186,7 @@ export default function SignupScreen() {
                   placeholder="Last Name"
                   placeholderTextColor={"gray"}
                   className="text-white font-poppins w-full"
-                  onSubmitEditing={() => {
-                    {
-                      toggleDatePicker();
-                    }
-                  }}
+                  onSubmitEditing={() => toggleDatePicker()}
                 />
               </Animated.View>
             </View>
@@ -263,7 +261,9 @@ export default function SignupScreen() {
                 placeholderTextColor={"gray"}
                 className="text-white font-poppins w-full"
                 returnKeyType="next"
-                onSubmitEditing={() => passwordRef.current?.focus()}
+                onSubmitEditing={() =>
+                  !password && passwordRef.current?.focus()
+                }
                 submitBehavior="blurAndSubmit"
               />
             </Animated.View>
