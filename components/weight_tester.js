@@ -4,12 +4,19 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useState } from 'react';
 import { Alert, PermissionsAndroid, Platform, StyleSheet, View } from 'react-native';
 
-export default function WeightScreen({ onUpdateTotal }) {
+export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
   const [currentWeight, setCurrentWeight] = useState(0);
   const [totalWeight, setTotalWeight] = useState(0);
   const [status, setStatus] = useState('Initializing...');
 
   useKeepAwake();
+
+  // Update parent with status changes
+  useEffect(() => {
+    if (onStatusChange) {
+      onStatusChange(status);
+    }
+  }, [status]); // Remove onStatusChange from dependencies
 
   const requestPermissions = async () => {
     if (Platform.OS === 'android') {
@@ -49,21 +56,26 @@ export default function WeightScreen({ onUpdateTotal }) {
 
       setStatus('Scanning for device...');
       console.log('Starting auto scan...');
-      scanAndConnect(async (data) => {
-        if (!isMounted) return;
+      scanAndConnect(
+        async (data) => {
+          if (!isMounted) return;
 
-        console.log('Processing data:', data);
-        const grams = parseWeight(data);
-        console.log('Parsed grams:', grams);
-        setCurrentWeight(grams);
-        setStatus('Connected - Receiving data');
+          console.log('Processing data:', data);
+          const grams = parseWeight(data);
+          console.log('Parsed grams:', grams);
+          setCurrentWeight(grams);
 
-        const total = await appendRow(grams);
-        setTotalWeight(total);
-        if (onUpdateTotal) {
-          onUpdateTotal(grams);
+          const total = await appendRow(grams);
+          setTotalWeight(total);
+          if (onUpdateTotal) {
+            onUpdateTotal(grams);
+          }
+        },
+        (status) => {
+          if (!isMounted) return;
+          setStatus(status);
         }
-      });
+      );
     };
 
     startBLE();

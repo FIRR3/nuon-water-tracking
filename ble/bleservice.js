@@ -9,6 +9,8 @@ if (Platform.OS !== 'web') {
 }
 let totalGrams = 0;
 const FILE_PATH = Platform.OS === 'web' ? null : `${FileSystem.documentDirectory}weight_log.csv`;
+let isScanning = false;
+let connectedDevice = null;
 
 // BLE device constants
 const DEVICE_NAME = "DRINK-TRACKER";
@@ -30,7 +32,7 @@ export function parseWeight(data) {
     bleVal = bleVal - 0x10000;
   }
   
-  return -bleVal / 100;
+  return bleVal / 100;
 }
 
 /**
@@ -66,37 +68,56 @@ export function getTotal() {
 /**
  * Scans and connects to the ESP32 BLE device
  * @param {(data: Uint8Array) => void} onData callback for each notification
+ * @param {(status: string) => void} onStatusChange callback for status updates
  */
-export function scanAndConnect(onData) {
+export function scanAndConnect(onData, onStatusChange) {
   if (!manager) {
     console.log('BLE not supported on this platform');
     return;
   }
+  
+  // Prevent multiple concurrent scans
+  if (isScanning) {
+    console.log('Already scanning, ignoring duplicate request');
+    return;
+  }
+  
+  isScanning = true;
   console.log('Starting BLE scan...');
+  if (onStatusChange) onStatusChange('Scanning for device...');
+  
   manager.startDeviceScan(null, null, (error, device) => {
     if (error) {
       console.log("Scan error:", error);
+      isScanning = false;
+      if (onStatusChange) onStatusChange('Scan error');
       return;
     }
-    console.log('Found device:', device.name, device.id);
-
+    
     if (device.name === DEVICE_NAME) {
       console.log('Matching device found, stopping scan and connecting...');
       manager.stopDeviceScan();
+      isScanning = false;
+      if (onStatusChange) onStatusChange('Connecting...');
 
       device.connect()
         .then(d => {
+          connectedDevice = d;
           console.log('Connected, discovering services...');
-          // Add disconnect listener
+          if (onStatusChange) onStatusChange('Discovering services...');
+          
           d.onDisconnected(() => {
             console.log('Device disconnected, restarting scan...');
-            // Restart scan after a delay
-            setTimeout(() => scanAndConnect(onData), 2000);
+            connectedDevice = null;
+            if (onStatusChange) onStatusChange('Disconnected - Reconnecting...');
+            setTimeout(() => scanAndConnect(onData, onStatusChange), 2000);
           });
+          
           return d.discoverAllServicesAndCharacteristics();
         })
         .then(d => {
           console.log("Connected to", DEVICE_NAME, 'monitoring characteristic...');
+          if (onStatusChange) onStatusChange('Connected - Receiving data');
 
           // Subscribe to weight characteristic notifications
           d.monitorCharacteristicForService(
@@ -105,8 +126,9 @@ export function scanAndConnect(onData) {
             (err, characteristic) => {
               if (err) {
                 console.log("Notification error:", err);
+                if (onStatusChange) onStatusChange('Connection error');
                 // On error, perhaps restart
-                setTimeout(() => scanAndConnect(onData), 2000);
+                setTimeout(() => scanAndConnect(onData, onStatusChange), 2000);
                 return;
               }
               console.log('Received characteristic update');
@@ -123,9 +145,29 @@ export function scanAndConnect(onData) {
         })
         .catch(err => {
           console.log("Connection error:", err);
+          if (onStatusChange) onStatusChange('Connection failed - Retrying...');
           // On connection error, restart scan
-          setTimeout(() => scanAndConnect(onData), 2000);
+          setTimeout(() => scanAndConnect(onData, onStatusChange), 2000);
         });
     }
   });
+}
+
+/**
+ * Cleanup function
+ */
+export async function cleanup() {
+  if (isScanning && manager) {
+    manager.stopDeviceScan();
+    isScanning = false;
+  }
+  
+  if (connectedDevice) {
+    try {
+      await connectedDevice.cancelConnection();
+    } catch (e) {
+      console.log('Error disconnecting:', e);
+    }
+    connectedDevice = null;
+  }
 }

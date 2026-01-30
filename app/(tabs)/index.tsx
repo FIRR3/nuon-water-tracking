@@ -4,7 +4,8 @@ import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
 import WeightScreen from "@/components/weight_tester";
 import { constantColors } from "@/constants/colors";
 import { UIIcons } from "@/constants/icon";
-import { addWaterEntry, getUserSettings, getTodayWaterIntake, removeWaterAmount, UserSettings } from "@/services/storage";import { useFocusEffect } from '@react-navigation/native';
+import { addWaterEntry, getTodayWaterIntake, getUserSettings, removeWaterAmount, UserSettings } from "@/services/storage";
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from "react";
 import { Dimensions, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -74,9 +75,9 @@ function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
 export default function Index() {
   const [currentWaterIntake, setCurrentWaterIntake] = useState(0);
   const [userSettings, setUserSettings] = useState<UserSettings>({ recommendedWaterIntake: 2400, unit: 'ml' });
-  const [gaugeKey, setGaugeKey] = useState(0);
+  const [bleStatus, setBleStatus] = useState('Initializing...');
   let recommendedWaterIntake = userSettings.recommendedWaterIntake;
-  let userName = "Firuz";
+  let userName = bleStatus;
 
   const router = useRouter();
 
@@ -87,6 +88,7 @@ export default function Index() {
   const refreshWaterIntake = async () => {
     try {
       const intake = await getTodayWaterIntake();
+      console.log('Refreshed water intake from storage:', intake);
       setCurrentWaterIntake(intake);
     } catch (error) {
       console.error('Error refreshing water intake:', error);
@@ -111,6 +113,7 @@ export default function Index() {
     loadData();
   }, []);
 
+
   // Refresh water intake when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -125,7 +128,6 @@ const updateWaterIntake = async (value: number) => {
       await addWaterEntry(value);
       // Refresh from storage to get the actual total
       await refreshWaterIntake();
-      setGaugeKey(prev => prev + 1);
     } catch (error) {
       console.error('Error adding water entry:', error);
     }
@@ -135,7 +137,6 @@ const updateWaterIntake = async (value: number) => {
       await removeWaterAmount(Math.abs(value));
       // Refresh from storage to get the actual total
       await refreshWaterIntake();
-      setGaugeKey(prev => prev + 1);
     } catch (error) {
       console.error('Error removing water entry:', error);
     }
@@ -203,7 +204,7 @@ const updateWaterIntake = async (value: number) => {
         </Modal>
 
         <LiquidProgressGauge
-          key={gaugeKey}
+          key={`gauge-${currentWaterIntake}`}
           width={windowWidth}
           height={windowHeight}
           value={currentWaterIntake}
@@ -212,7 +213,10 @@ const updateWaterIntake = async (value: number) => {
         />
         
       </ScrollView>
-      <WeightScreen onUpdateTotal={updateWaterIntake} />
+      <WeightScreen 
+        onUpdateTotal={updateWaterIntake} 
+        onStatusChange={setBleStatus}
+      />
 
     </ScreenBackgroundWrapper>
 

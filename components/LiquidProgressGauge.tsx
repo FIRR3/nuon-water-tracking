@@ -200,14 +200,13 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
   const clipSvgPath = clipArea(data);
 
   const translateXAnimated = useSharedValue(0);
-  const translateYPercent = useSharedValue(0);
-  const textValue = useSharedValue(0);
+  const translateYPercent = useSharedValue(fillPercent);
+  const textValue = useSharedValue(value);
 
   useEffect(() => {
     textValue.value = withTiming(value, {
       duration: 1000,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   const text = useDerivedValue(() => {
@@ -218,7 +217,7 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
     translateYPercent.value = withTiming(fillPercent, {
       duration: 5000,
     });
-  }, [value, fillPercent]);
+  }, [fillPercent]);
 
 
 
