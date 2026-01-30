@@ -15,12 +15,20 @@ import {
 import { area, scaleLinear } from "d3";
 import React, { useEffect } from "react";
 import {
+  configureReanimatedLogger,
   Easing,
+  ReanimatedLogLevel,
   useDerivedValue,
   useSharedValue,
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+
+// This is the default configuration
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false, // Reanimated runs in strict mode by default
+});
 
 type Props = {
   width: number;
@@ -127,7 +135,7 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
   const greetingY = 120;
 
   // Value text and 'ml' text width
-  const valueText = `${value}`;
+  const valueText = `${Math.round(value)}`;
   const mlText = "ml";
 
   const valueTextWidth = xlFont?.getTextWidth(valueText) ?? 0;
@@ -139,7 +147,7 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
   const textTransform = [{ translateY: textTranslateY }];
 
   // x ml remaining text
-  const waterRemainingText = value < maxValue ? `Remaining: ${maxValue - value}ml` : "Goal achieved!";
+  const waterRemainingText = value < maxValue ? `Remaining: ${Math.round(maxValue - value)}ml` : "Goal achieved!";
   const waterRemainingTextWidth = smFont?.getTextWidth(waterRemainingText) ?? 0;
   const waterRemainingTranslateX = width / 2 - waterRemainingTextWidth / 2;
   const waterRemainingTranslateY = textTranslateY + xlFontSize * 0.4;

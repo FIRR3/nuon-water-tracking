@@ -9,7 +9,6 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from "react";
 import { Dimensions, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
-
 interface WaterAdjustModalProps {
   onClose: () => void;
   onSave: (value: number) => void;

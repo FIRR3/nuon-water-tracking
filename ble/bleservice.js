@@ -22,8 +22,15 @@ const MEASURE_CHAR_UUID = "00002A9D-0000-1000-8000-00805f9b34fb";
  */
 export function parseWeight(data) {
   // ESP32 sends 3-byte array: [0x00, LSB, MSB]
-  const bleVal = (data[2] << 8) | data[1];
-  return bleVal * 5.0;
+  let bleVal = (data[2] << 8) | data[1];
+  
+  // Check if this is a signed 16-bit integer (negative value)
+  // If the MSB (bit 15) is set, convert from two's complement
+  if (bleVal & 0x8000) {
+    bleVal = bleVal - 0x10000;
+  }
+  
+  return -bleVal / 100;
 }
 
 /**
