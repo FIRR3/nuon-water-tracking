@@ -2,18 +2,49 @@ import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
 import Section from "@/components/Section";
 import SettingsRow from "@/components/SettingsRow";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserStore } from "@/hooks/useUserStore";
 import { account } from "@/services/appwrite";
-import React from "react";
-import { Text, TouchableOpacity } from "react-native";
+import { userProfileAPI } from "@/services/appwriteService";
+import React, { useState } from "react";
+import { Alert, Text, TouchableOpacity } from "react-native";
 
 const MyAccount = () => {
   const { logout } = useAuth();
 
-  const email = "firnab23@varmdogymnasium.se";
-  const firstName = "Firuz";
-  const lastName = "Nabiev";
+  const { userProfile, authUser, fetchUserData } = useUserStore();
+  
+  // Local state initialized from global state
+  const [email, setEmail] = useState(userProfile?.email || '');
+  const [firstName, setFirstName] = useState(userProfile?.firstName || '');
+  const [lastName, setLastName] = useState(userProfile?.lastName || '');
+  const [loading, setLoading] = useState(false);
+
   const unitSystem = "Metric";
   const language = "English";
+
+  const handleSave = async () => {
+    setLoading(true);
+    
+    try {
+      // Update in database
+      await userProfileAPI.update(authUser.$id, {
+        email: email.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim()
+      });
+      
+      // Refresh global state
+      await fetchUserData();
+      
+      Alert.alert('Success', 'Profile updated!');
+      
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      Alert.alert('Error', 'Failed to update profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {

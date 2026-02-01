@@ -4,10 +4,13 @@ import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
 import WeightScreen from "@/components/weight_tester";
 import { constantColors } from "@/constants/colors";
 import { UIIcons } from "@/constants/icon";
-import { addWaterEntry, getUserSettings, getTodayWaterIntake, removeWaterAmount, UserSettings } from "@/services/storage";import { useFocusEffect } from '@react-navigation/native';
+import { addWaterEntry, getTodayWaterIntake, getUserSettings, removeWaterAmount, UserSettings } from "@/services/storage";
+import { calculateProgress, getIntakeExplanation } from "@/utils/waterCalculations";
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from "react";
 import { Dimensions, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useUserStore } from '../../hooks/useUserStore';
 
 
 interface WaterAdjustModalProps {
@@ -73,11 +76,36 @@ function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
 }
 
 export default function Index() {
-  const [currentWaterIntake, setCurrentWaterIntake] = useState(0);
+
+  const {
+    userProfile,
+    healthProfile,
+    recommendedIntake,
+    totalToday,
+    isLoading,
+    fetchUserData
+  } = useUserStore();
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  // if (isLoading) {
+  //   return <ActivityIndicator size="large" />;
+  // }
+
+  const progress = calculateProgress(totalToday, recommendedIntake);
+  const explanation = getIntakeExplanation(recommendedIntake);
+
+  const [userName, setUserName] = useState('')
+  const [currentWaterIntake, setCurrentWaterIntake] = useState(totalToday);
   const [userSettings, setUserSettings] = useState<UserSettings>({ recommendedWaterIntake: 2400, unit: 'ml' });
-  const [gaugeKey, setGaugeKey] = useState(0);
-  let recommendedWaterIntake = userSettings.recommendedWaterIntake;
-  let userName = "Firuz";
+  const [gaugeKey, setGaugeKey] = useState(totalToday);
+  let recommendedWaterIntake = recommendedIntake;
+
+  useEffect(() => {
+    userProfile?.firstName && setUserName(userProfile?.firstName);
+  }, [userProfile ])
 
   const router = useRouter();
 

@@ -15,12 +15,19 @@ import {
 import { area, scaleLinear } from "d3";
 import React, { useEffect } from "react";
 import {
+  configureReanimatedLogger,
+  ReanimatedLogLevel,
   Easing,
   useDerivedValue,
   useSharedValue,
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false,
+})
 
 type Props = {
   width: number;

@@ -3,93 +3,33 @@ import Section from "@/components/Section";
 import SettingsRow from "@/components/SettingsRow";
 import ToggleButton from "@/components/ToggleButton";
 import { AppIcons } from "@/constants/icon";
-import { useAppwriteFetch } from "@/hooks/useAppwriteFetch";
-import { useAuth } from "@/hooks/useAuth";
-import {
-  USER_HEALTH_PROFILES_TABLE_ID,
-  USERS_TABLE_ID,
-} from "@/services/appwrite";
+import { useUserStore } from "@/hooks/useUserStore";
 import React, { useState } from "react";
 import { ScrollView, Text } from "react-native";
 import { scale } from "react-native-size-matters";
+import { calculateAge } from "../../utils/calulateAge";
 
 export function capitalizeFirstLetter(val: string) {
   return String(val).charAt(0).toUpperCase() + String(val).slice(1);
 }
 
-export function getYearDifference(date1: Date): number {
-  const today = new Date();
-  let years = today.getFullYear() - date1.getFullYear();
-  if (
-    today.getMonth() < date1.getMonth() ||
-    (today.getMonth() === date1.getMonth() && today.getDate() < date1.getDate())
-  ) {
-    years--;
-  }
-  return years;
-}
-
 const Settings = () => {
+  const { userProfile, healthProfile, recommendedIntake } =
+    useUserStore();
+
+  const [weight, setWeight] = useState(healthProfile?.weight?.toString() || "");
+  const [customGoal, setCustomGoal] = useState(
+    healthProfile?.customWaterGoal?.toString() || "",
+  );
+
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
 
-  const { userId } = useAuth.getState();
-
-  const {
-    data: userData,
-    loading: userLoading,
-    error: userError,
-    refetch: userRefetch,
-  } = useAppwriteFetch(USERS_TABLE_ID);
-  const {
-    data: userHealthProfileData,
-    loading: userHealthProfileLoading,
-    error: userHealthProfileError,
-    refetch: userHealthProfileRefetch,
-  } = useAppwriteFetch(USER_HEALTH_PROFILES_TABLE_ID);
-
-  // To find the specific user among the table logs
-  const userProfile =
-    !userLoading && userData
-      ? userData.find((profile: any) => profile.$id === userId)
-      : null;
-  const userHealthProfile =
-    !userHealthProfileLoading && userHealthProfileData
-      ? userHealthProfileData.find((profile: any) => profile.$id === userId)
-      : null;
-
-  // Displayed variables
-  let userName = userLoading
-    ? "Loading..."
-    : userProfile
-      ? `${userProfile.firstName} ${userProfile.lastName}`
-      : "User";
-
-  let age = userLoading
-    ? "..."
-    : userProfile
-      ? `${getYearDifference(new Date(userProfile.birthday))} years`
-      : "";
-
-  let currentWeight = userHealthProfileLoading
-    ? "..."
-    : userHealthProfile
-      ? `${userHealthProfile.weight}kg`
-      : "Error";
-
-  let waterGoal = userHealthProfileLoading
-    ? "..."
-    : userHealthProfile
-      ? userHealthProfile.customWatergoal
-        ? `${userHealthProfile.customWaterGoal / 1000}L`
-        : "2.4L"
-      : "Error";
-
-  let activityLevel = userHealthProfileLoading
-    ? "..."
-    : userHealthProfile
-      ? `${userHealthProfile.activityLevel}`
-      : "Error";
+  let userName = `${userProfile?.firstName} ${userProfile?.lastName}`;
+  let age = calculateAge(userProfile?.birthday);
+  let currentWeight = healthProfile?.weight;
+  let waterGoal = recommendedIntake;
+  let activityLevel = healthProfile?.activityLevel;
 
   return (
     <ScreenBackgroundWrapper>
@@ -109,7 +49,7 @@ const Settings = () => {
               {userName}
             </Text>
             <Text className="text-white text-md font-poppins-semibold">
-              {age}
+              {age + " years"}
             </Text>
           </SettingsRow>
 
@@ -118,7 +58,7 @@ const Settings = () => {
               Current weight
             </Text>
             <Text className="text-white text-[15px] font-poppins-semibold">
-              {currentWeight}
+              {currentWeight + "kg"}
             </Text>
           </SettingsRow>
 
@@ -127,13 +67,15 @@ const Settings = () => {
               Water goal
             </Text>
             <Text className="text-white text-[15px] font-poppins-semibold">
-              {waterGoal}
+              {waterGoal / 1000 + "L"}
             </Text>
           </SettingsRow>
 
           <SettingsRow>
             <Text className="text-white text-[15px] font-poppins-medium">
-              <Text className="font-poppins-semibold">{activityLevel}</Text>{" "}
+              <Text className="font-poppins-semibold">
+                {capitalizeFirstLetter(activityLevel)}
+              </Text>{" "}
               activity level
             </Text>
           </SettingsRow>
