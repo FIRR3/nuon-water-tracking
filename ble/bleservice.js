@@ -86,6 +86,25 @@ export function scanAndConnect(onData, onStatusChange) {
   console.log('Starting BLE scan...');
   if (onStatusChange) onStatusChange('Scanning for device...');
   
+  // Use state change listener to ensure Bluetooth is ready
+  const subscription = manager.onStateChange((state) => {
+    console.log('Bluetooth state:', state);
+    
+    if (state === 'PoweredOn') {
+      subscription.remove();
+      console.log('Bluetooth ready, starting scan...');
+      startScan(onData, onStatusChange);
+    } else {
+      console.log('Bluetooth not ready, state:', state);
+      if (onStatusChange) onStatusChange('Enable Bluetooth');
+    }
+  }, true); // true = emit current state immediately
+}
+
+/**
+ * Internal function to start the actual scan
+ */
+function startScan(onData, onStatusChange) {
   manager.startDeviceScan(null, null, (error, device) => {
     if (error) {
       console.log("Scan error:", error);

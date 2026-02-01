@@ -164,7 +164,6 @@ const updateWaterIntake = async (value: number) => {
   const { size: dropletSize, positionX: dropletPositionX, positionY: dropletPositionY } = getDropletPosition(windowWidth, windowHeight);
 
 
-  console.log("Rendering Index with currentWaterIntake:", currentWaterIntake);
   return (
     <ScreenBackgroundWrapper className="flex-1">
       <ScrollView
