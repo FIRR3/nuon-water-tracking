@@ -16,8 +16,8 @@ import { area, scaleLinear } from "d3";
 import React, { useEffect } from "react";
 import {
   configureReanimatedLogger,
-  Easing,
   ReanimatedLogLevel,
+  Easing,
   useDerivedValue,
   useSharedValue,
   withRepeat,

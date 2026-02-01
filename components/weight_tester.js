@@ -2,7 +2,7 @@
 import { appendRow, parseWeight, scanAndConnect } from '@/ble/bleservice.js';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useState } from 'react';
-import { Alert, PermissionsAndroid, Platform, StyleSheet, View } from 'react-native';
+import { Alert, PermissionsAndroid, Platform, View } from 'react-native';
 
 export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
   const [currentWeight, setCurrentWeight] = useState(0);
@@ -84,31 +84,6 @@ export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
   }, []);
 
   return (
-    <View style={styles.container}>
-      
-    </View>
+    <View/>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex:1,
-    alignItems:'center',
-    justifyContent:'center',
-    padding:20
-  },
-  title: {
-    fontSize:24,
-    fontWeight:'bold',
-    marginBottom:20
-  },
-  status: {
-    fontSize:16,
-    color: 'blue',
-    marginBottom: 10
-  },
-  label: {
-    fontSize:18,
-    marginVertical:10
-  }
-});

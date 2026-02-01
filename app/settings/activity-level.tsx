@@ -1,12 +1,44 @@
 import ScreenBackgroundWrapper from '@/components/ScreenBackgroundWrapper';
 import { UIIcons } from '@/constants/icon';
+import { useUserStore } from '@/hooks/useUserStore';
+import { userProfileAPI } from '@/services/appwriteService';
 import React, { useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Text, TouchableOpacity, View } from 'react-native';
 import { scale } from 'react-native-size-matters';
 
 const ActivityLevel = () => {
 
+  const { userProfile, authUser, fetchUserData } = useUserStore();
+
   const [selectedLifestyle, setSelectedLifestyle] = useState<string>('Moderate');
+  const [email, setEmail] = useState(userProfile?.email || '');
+
+  const unitSystem = "Metric";
+  const language = "English";
+
+  // const handleSave = async () => {
+  //   setLoading(true);
+    
+  //   try {
+  //     // Update in database
+  //     await userProfileAPI.update(authUser.$id, {
+  //       email: email.trim(),
+  //       firstName: firstName.trim(),
+  //       lastName: lastName.trim()
+  //     });
+      
+  //     // Refresh global state
+  //     await fetchUserData();
+      
+  //     Alert.alert('Success', 'Profile updated!');
+      
+  //   } catch (error) {
+  //     console.error('Failed to update profile:', error);
+  //     Alert.alert('Error', 'Failed to update profile. Please try again.');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const lifestyleOptions = [
     {id: 'Sedentary', description: 'Little to no daily activity or exercise. Desk job or student lifestyle. Mostly inactive with occasional light walking.'},
