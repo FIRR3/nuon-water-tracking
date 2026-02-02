@@ -24,14 +24,10 @@ const MEASURE_CHAR_UUID = "00002A9D-0000-1000-8000-00805f9b34fb";
  */
 export function parseWeight(data) {
   // ESP32 sends 3-byte array: [0x00, LSB, MSB]
+  // Data is encoded as: int16_t = (grams * 100)
   let bleVal = (data[2] << 8) | data[1];
   
-  // Check if this is a signed 16-bit integer (negative value)
-  // If the MSB (bit 15) is set, convert from two's complement
-  if (bleVal & 0x8000) {
-    bleVal = bleVal - 0x10000;
-  }
-  
+  // Convert back to grams by deviding by 100
   return bleVal / 100;
 }
 
@@ -134,33 +130,124 @@ function startScan(onData, onStatusChange) {
           
           return d.discoverAllServicesAndCharacteristics();
         })
-        .then(d => {
-          console.log("Connected to", DEVICE_NAME, 'monitoring characteristic...');
+        .then(async d => {
+          console.log("Connected to", DEVICE_NAME, 'setting up monitoring...');
+          if (onStatusChange) onStatusChange('Setting up data monitoring...');
+
+          // Request MTU (improves reliability)
+          try {
+            const mtu = await d.requestMTU(512);
+            console.log('MTU negotiated:', mtu);
+          } catch (err) {
+            console.log('MTU request failed (non-critical):', err.message);
+          }
+
+          // Small delay to ensure services are fully ready
+          await new Promise(resolve => setTimeout(resolve, 300));
+
+          // First, read the characteristic to verify it's accessible
+          try {
+            const services = await d.services();
+            console.log('Available services:', services.map(s => s.uuid));
+            
+            const characteristics = await d.characteristicsForService(SERVICE_UUID);
+            console.log('Available characteristics:', characteristics.map(c => c.uuid));
+            
+            // Verify the characteristic exists and has notify property
+            const targetChar = characteristics.find(c => c.uuid.toLowerCase() === MEASURE_CHAR_UUID.toLowerCase());
+            if (!targetChar) {
+              throw new Error('Measurement characteristic not found');
+            }
+            console.log('Characteristic properties:', {
+              isNotifiable: targetChar.isNotifiable,
+              isReadable: targetChar.isReadable
+            });
+          } catch (err) {
+            console.log('Error verifying characteristics:', err);
+          }
+
+          // First try to read the characteristic to verify connectivity
+          console.log('Reading characteristic to verify connection...');
+          try {
+            const readPromise = d.readCharacteristicForService(SERVICE_UUID, MEASURE_CHAR_UUID);
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Read timeout')), 2000)
+            );
+            const readChar = await Promise.race([readPromise, timeoutPromise]);
+            console.log('Initial characteristic read successful:', readChar.value);
+          } catch (err) {
+            console.log('Initial read failed (this is OK):', err.message);
+          }
+          console.log('Proceeding to CCCD setup...');
+
+          // CRITICAL: Manually enable notifications by writing to CCCD
+          console.log('Manually enabling notifications on CCCD descriptor...');
+          try {
+            // Write 0x0100 to enable notifications on the CCCD (descriptor UUID 0x2902)
+            const writePromise = d.writeDescriptorForCharacteristic(
+              SERVICE_UUID,
+              MEASURE_CHAR_UUID,
+              '00002902-0000-1000-8000-00805f9b34fb',
+              'AQ==' // Base64 for [0x01, 0x00] - enables notifications
+            );
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('CCCD write timeout')), 2000)
+            );
+            await Promise.race([writePromise, timeoutPromise]);
+            console.log('✓ CCCD write successful - notifications ENABLED');
+          } catch (err) {
+            console.log('⚠️ CCCD write failed:', err.message);
+            console.log('   Continuing anyway - monitorCharacteristicForService may handle it');
+          }
+          console.log('Proceeding to monitoring setup...');
+
+          console.log('Starting notification monitoring...');
           if (onStatusChange) onStatusChange('Connected - Receiving data');
 
-          // Subscribe to weight characteristic notifications
-          d.monitorCharacteristicForService(
+          // Subscribe to weight characteristic notifications with transaction ID for tracking
+          const subscription = d.monitorCharacteristicForService(
             SERVICE_UUID,
             MEASURE_CHAR_UUID,
             (err, characteristic) => {
               if (err) {
-                console.log("Notification error:", err);
+                console.log("❌ Notification error:", err);
+                console.log("Error details:", JSON.stringify(err, null, 2));
                 if (onStatusChange) onStatusChange('Connection error');
                 // On error, perhaps restart
                 setTimeout(() => scanAndConnect(onData, onStatusChange), 2000);
                 return;
               }
-              console.log('Received characteristic update');
+              
+              if (!characteristic) {
+                console.log('⚠️ Received null characteristic');
+                return;
+              }
+              
+              if (!characteristic.value) {
+                console.log('⚠️ Received characteristic with no value');
+                return;
+              }
+              
+              console.log('✅ Received characteristic update!');
+              console.log('  - UUID:', characteristic.uuid);
+              console.log('  - Value (base64):', characteristic.value);
+              
               // characteristic.value is Base64
               const binaryString = atob(characteristic.value);
               const buffer = new Uint8Array(binaryString.length);
               for (let i = 0; i < binaryString.length; i++) {
                 buffer[i] = binaryString.charCodeAt(i);
               }
-              console.log('Raw data:', buffer);
+              console.log('  - Raw data (hex):', Array.from(buffer).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '));
+              console.log('  - Raw data (dec):', Array.from(buffer).join(', '));
               onData(buffer);
             }
           );
+          
+          console.log('✓ Monitoring subscription created:', subscription ? 'SUCCESS' : 'FAILED');
+          if (!subscription) {
+            throw new Error('Failed to create monitoring subscription');
+          }
         })
         .catch(err => {
           console.log("Connection error:", err);

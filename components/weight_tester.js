@@ -84,6 +84,6 @@ export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
   }, []);
 
   return (
-    <View/>
+    <View></View>
   );
 }

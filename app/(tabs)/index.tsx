@@ -97,15 +97,21 @@ export default function Index() {
   const explanation = getIntakeExplanation(recommendedIntake);
 
   const [userName, setUserName] = useState('')
-  const [currentWaterIntake, setCurrentWaterIntake] = useState(totalToday);
+  const [currentWaterIntake, setCurrentWaterIntake] = useState(0);
   const [userSettings, setUserSettings] = useState<UserSettings>({ recommendedWaterIntake: 2400, unit: 'ml' });
   const [bleStatus, setBleStatus] = useState('Initializing...');
-  const [gaugeKey, setGaugeKey] = useState(totalToday);
-  let recommendedWaterIntake = recommendedIntake;
+  
+  // Use local storage settings for recommended intake, fallback to store value when Appwrite is implemented
+  let recommendedWaterIntake = userSettings.recommendedWaterIntake || recommendedIntake || 2400;
 
   useEffect(() => {
     userProfile?.firstName && setUserName(userProfile?.firstName);
   }, [userProfile ])
+
+  // Sync currentWaterIntake with totalToday from store
+  useEffect(() => {
+    setCurrentWaterIntake(totalToday);
+  }, [totalToday]);
 
   const router = useRouter();
 
@@ -123,7 +129,7 @@ export default function Index() {
     }
   };
 
-  // Load data on component mount
+  // Load data on component mount from local storage
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -131,6 +137,7 @@ export default function Index() {
           getTodayWaterIntake(),
           getUserSettings()
         ]);
+        console.log('Loaded from local storage - Water:', waterIntake, 'Settings:', settings);
         setCurrentWaterIntake(waterIntake);
         setUserSettings(settings);
       } catch (error) {

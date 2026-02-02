@@ -110,9 +110,6 @@ void setup() {
   }
   x0 /= avg_size;
 
-  
-  
-
 
   Serial.println("Calibration done");
 

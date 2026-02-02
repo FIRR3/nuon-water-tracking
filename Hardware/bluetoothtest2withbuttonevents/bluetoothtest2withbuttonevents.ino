@@ -34,8 +34,14 @@ bool deviceConnected = false;
 bool oldDeviceConnected = false;
 
 class MyServerCallbacks : public BLEServerCallbacks {
-  void onConnect(BLEServer*)   { deviceConnected = true; }
-  void onDisconnect(BLEServer*) { deviceConnected = false; }
+  void onConnect(BLEServer*) { 
+    deviceConnected = true;
+    Serial.println("[BLE] Client connected!");
+  }
+  void onDisconnect(BLEServer*) { 
+    deviceConnected = false;
+    Serial.println("[BLE] Client disconnected!");
+  }
 };
 
 // ===================== EVENT STATE ==================
@@ -61,8 +67,19 @@ void send_ble_value(float grams) {
   payload[1] = bleVal & 0xFF;      // LSB
   payload[2] = bleVal >> 8;        // MSB
 
+  Serial.print("[BLE] Sending: ");
+  Serial.print(grams);
+  Serial.print("g (0x");
+  Serial.print(payload[0], HEX);
+  Serial.print(" 0x");
+  Serial.print(payload[1], HEX);
+  Serial.print(" 0x");
+  Serial.print(payload[2], HEX);
+  Serial.println(")");
+
   pCharacteristic->setValue(payload, 3);
   pCharacteristic->notify();
+  Serial.println("[BLE] Notify sent");
 }
 
 // ===================== READ SCALE ===================
@@ -121,6 +138,7 @@ void setup() {
   pAdvertising->start();
 
   Serial.println("Event-based system ready");
+  Serial.println("[BLE] Advertising started, waiting for client connection...");
 }
 
 // ===================== LOOP =========================
@@ -166,12 +184,25 @@ void loop() {
       if (stableCount >= STABLE_SAMPLES) {
         float diff = lastStableWeight - baselineWeight;
 
+        // If baseline is very low (< 50g), this is initial bottle placement
+        // Just set the baseline without sending data
+        if (baselineWeight < 50.0f && lastStableWeight > 100.0f) {
+          Serial.println("Initial bottle placement detected, setting baseline");
+          baselineWeight = lastStableWeight;
+          state = IDLE;
+          break;
+        }
+
         if (abs(diff) >= MIN_DELTA) {
           Serial.print("EVENT Δ: ");
-          Serial.println(diff);
+          Serial.print(diff);
+          Serial.println("g");
 
           if (deviceConnected) {
+            Serial.println("[BLE] Client connected, sending data...");
             send_ble_value(-diff);
+          } else {
+            Serial.println("[BLE] No client connected, skipping send");
           }
 
           baselineWeight = lastStableWeight;
