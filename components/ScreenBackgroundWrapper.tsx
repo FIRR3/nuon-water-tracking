@@ -19,7 +19,7 @@ const ScreenBackgroundWrapper = ({
       style={{ backgroundColor: darkColors.background }}
       className={`flex-1 ${className}`}
     >
-      <View className="flex-1">{children}</View>
+      <View className="flex flex-1">{children}</View>
     </SafeAreaProvider>
   );
 
