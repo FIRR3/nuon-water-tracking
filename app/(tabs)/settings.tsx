@@ -14,12 +14,10 @@ export function capitalizeFirstLetter(val: string) {
 }
 
 const Settings = () => {
-  const { userProfile, healthProfile, recommendedIntake } =
-    useUserStore();
+  const { userProfile, healthProfile, recommendedIntake } = useUserStore();
 
-  const [weight, setWeight] = useState(healthProfile?.weight?.toString() || "");
   const [customGoal, setCustomGoal] = useState(
-    healthProfile?.customWaterGoal?.toString() || "",
+    healthProfile?.customWaterGoal?.toString() || null,
   );
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -28,7 +26,7 @@ const Settings = () => {
   let userName = `${userProfile?.firstName} ${userProfile?.lastName}`;
   let age = calculateAge(userProfile?.birthday);
   let currentWeight = healthProfile?.weight;
-  let waterGoal = recommendedIntake;
+  let waterGoal = customGoal ? customGoal : recommendedIntake;
   let activityLevel = healthProfile?.activityLevel;
 
   return (

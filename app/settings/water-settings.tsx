@@ -1,105 +1,128 @@
-import ScreenBackgroundWrapper from '@/components/ScreenBackgroundWrapper'
-import { constantColors, darkColors } from '@/constants/colors'
-import { getUserSettings, saveUserSettings, UserSettings } from '@/services/storage'
-import Slider from '@react-native-community/slider'
-import React, { useEffect, useState } from 'react'
-import { Text, TouchableOpacity, View } from 'react-native'
+import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
+import { constantColors, darkColors } from "@/constants/colors";
+import { useUserStore } from "@/hooks/useUserStore";
+import Slider from "@react-native-community/slider";
+import React, { useEffect, useState } from "react";
+import { Alert, Text, TouchableOpacity, View } from "react-native";
 
 const WaterSettings = () => {
+  const { healthProfile, recommendedIntake, updateHealthProfile } =
+    useUserStore();
 
+  const waterGoal = healthProfile?.customWaterGoal || recommendedIntake;
   const maxValue = 5;
-  const [sliderState, setSliderState] = useState<number>(2.4);
-  const [userSettings, setUserSettings] = useState<UserSettings>({ recommendedWaterIntake: 2400, unit: 'ml' });
+  const [sliderState, setSliderState] = useState<number>(waterGoal / 1000);
 
-  // Load settings on component mount
+  // Sync slider state when waterGoal changes externally
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const settings = await getUserSettings();
-        setUserSettings(settings);
-        setSliderState(settings.recommendedWaterIntake / 1000); // Convert ml to liters for slider
-      } catch (error) {
-        console.error('Error loading settings:', error);
-      }
-    };
-
-    loadSettings();
-  }, []);
-
-  // Save settings when slider changes
-  const handleSliderChange = async (value: number) => {
-    setSliderState(value);
-    const newSettings: UserSettings = {
-      ...userSettings,
-      recommendedWaterIntake: Math.round(value * 1000) // Convert liters to ml
-    };
-    setUserSettings(newSettings);
-
-    try {
-      await saveUserSettings(newSettings);
-    } catch (error) {
-      console.error('Error saving settings:', error);
+    if (waterGoal) {
+      setSliderState(waterGoal / 1000);
     }
+  }, [waterGoal]);
+
+  // Update slider value as user drags it
+  const handleSliderChange = (value: number) => {
+    setSliderState(value);
   };
 
-  const resetToDefault = async () => {
-    const defaultSettings: UserSettings = {
-      recommendedWaterIntake: 2400,
-      unit: 'ml'
-    };
-    setUserSettings(defaultSettings);
-    setSliderState(2.4);
+  // Reset custom water goal to app's calculated recommendation and save to Appwrite
+  const resetToDefault = () => {
+    Alert.alert(
+      "Reset",
+      "Are you sure you want to reset from your custom water goal to our recommended amount?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await updateHealthProfile({ customWaterGoal: null });
+              // useEffect will sync the slider state after the update
+            } catch (error) {
+              console.error("Error resetting settings:", error);
+            }
+          },
+        },
+      ],
+    );
+  };
 
+  // Save the new custom water goal to Appwrite user_health_profile
+  const confirmWaterAmount = async () => {
+    const newGoal = Math.round(sliderState * 1000);
     try {
-      await saveUserSettings(defaultSettings);
+      await updateHealthProfile({ customWaterGoal: newGoal });
     } catch (error) {
-      console.error('Error resetting settings:', error);
+      console.error("Error confirming water amount:", error);
     }
   };
 
   return (
-    <ScreenBackgroundWrapper className='pt-10 gap-28'>
-      <View className='gap-12 px-5'>
-        <Text className='text-white text-sm font-poppins'>
-          Do you feel like your calculated amount of water is not enough or too much for you?
-        </Text>
-        <Text className='text-white text-sm font-poppins'>Change you recommended amount here:</Text>
-      </View>
-
-      <View className=' gap-8 px-5 w-full'>
-        <Text className='text-white text-md font-poppins-semibold text-center'>Daily goal</Text>
-        <View className='w-full'>
-          <Text
-            style={{
-              alignSelf: 'flex-start',
-              left: `${sliderState/maxValue * 100}%`,
-              transform: [{ translateX: `${sliderState/maxValue*-100}%`, }]
-            }}
-            className='text-white text-sm font-poppins-semibold'
-          >
-            {(sliderState).toFixed(1) + 'L'}
+    <ScreenBackgroundWrapper>
+      <View className="pt-10 gap-28">
+        <View className="gap-12 px-5">
+          <Text className="text-white text-sm font-poppins">
+            Do you feel like your calculated amount of water is not enough or
+            too much for you?
           </Text>
-          <Slider
-            value={sliderState}
-            onValueChange={handleSliderChange}
-            minimumValue={0}
-            maximumValue={maxValue}
-            minimumTrackTintColor={constantColors.accent}
-            maximumTrackTintColor={darkColors.secondary}
-          />
+          <Text className="text-white text-sm font-poppins">
+            Change you recommended amount here:
+          </Text>
+        </View>
+
+        <View className=" gap-8 px-5 w-full">
+          <Text className="text-white text-md font-poppins-semibold text-center">
+            Daily goal
+          </Text>
+          <View className="w-full">
+            <Text
+              style={{
+                alignSelf: "flex-start",
+                left: `${(sliderState / maxValue) * 100}%`,
+                transform: [
+                  { translateX: `${(sliderState / maxValue) * -100}%` },
+                ],
+              }}
+              className="text-white text-sm font-poppins-semibold"
+            >
+              {sliderState.toFixed(1) + "L"}
+            </Text>
+            <Slider
+              value={sliderState}
+              onValueChange={handleSliderChange}
+              minimumValue={0}
+              maximumValue={maxValue}
+              minimumTrackTintColor={constantColors.accent}
+              maximumTrackTintColor={darkColors.secondary}
+            />
+          </View>
+        </View>
+
+        <View className="gap-[2px]">
+          <TouchableOpacity
+            className="bg-dark-secondary px-5 py-6"
+            onPress={resetToDefault}
+          >
+            <Text className="text-red-600 font-poppins text-center">
+              Reset to app recommendation
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="bg-dark-secondary px-5 py-6"
+            onPress={confirmWaterAmount}
+          >
+            <Text className="text-dark-accent font-poppins text-center">
+              Confirm new water amount
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      <View className='gap-[2px]'>
-        <TouchableOpacity className='bg-dark-secondary px-5 py-6' onPress={resetToDefault}>
-          <Text className='text-red-600 font-poppins text-center'>Reset to app recommendation</Text>
-        </TouchableOpacity>
-        <TouchableOpacity className='bg-dark-secondary px-5 py-6'>
-          <Text className='text-dark-accent font-poppins text-center'>Confirm new water amount</Text>
-        </TouchableOpacity>
-      </View>
     </ScreenBackgroundWrapper>
-  )
-}
+  );
+};
 
-export default WaterSettings
+export default WaterSettings;

@@ -1,16 +1,35 @@
-import { getDropletPosition, LiquidProgressGauge } from "@/components/LiquidProgressGauge";
+import {
+  getDropletPosition,
+  LiquidProgressGauge,
+} from "@/components/LiquidProgressGauge";
 import Modal from "@/components/Modal";
 import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
 import WeightScreen from "@/components/weight_tester";
 import { constantColors } from "@/constants/colors";
 import { UIIcons } from "@/constants/icon";
-import { getUserSettings, UserSettings } from "@/services/storage";
-import { calculateProgress, getIntakeExplanation } from "@/utils/waterCalculations";
-import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
+import {
+  addWaterEntry,
+  getTodayWaterIntake,
+  getUserSettings,
+  removeWaterAmount,
+  UserSettings,
+} from "@/services/storage";
+import {
+  calculateProgress,
+  getIntakeExplanation,
+} from "@/utils/waterCalculations";
+import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { Dimensions, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { useUserStore } from '../../hooks/useUserStore';
+import {
+  Dimensions,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useUserStore } from "../../hooks/useUserStore";
 
 interface WaterAdjustModalProps {
   onClose: () => void;
@@ -18,34 +37,40 @@ interface WaterAdjustModalProps {
 }
 
 function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
-
   const [selectedValue, setSelectedValue] = useState(0);
 
   return (
-    <View 
-      className="bg-light-primary w-[90%] rounded-3xl overflow-hidden shadow-2xl border border-white/5"
-    >
+    <View className="bg-light-primary w-[90%] rounded-3xl overflow-hidden shadow-2xl border border-white/5">
       <View className="p-8 pb-4 gap-5">
         <Text className="text-white text-lg text-center font-poppins-medium text-opacity-90">
           Add or Remove Water
         </Text>
 
         <View className="flex flex-row justify-between items-center">
-          <TouchableOpacity onPress={() => setSelectedValue(prev => prev - 50)}>
-            <UIIcons.remove color={constantColors.accent} size={30}/>
+          <TouchableOpacity
+            onPress={() => setSelectedValue((prev) => prev - 50)}
+          >
+            <UIIcons.remove color={constantColors.accent} size={30} />
           </TouchableOpacity>
 
-          <Text className="text-center text-white text-[50px] font-poppins-medium">{selectedValue}</Text>
+          <Text className="text-center text-white text-[50px] font-poppins-medium">
+            {selectedValue}
+          </Text>
 
-          <TouchableOpacity onPress={() => setSelectedValue(prev => prev + 50)}>
-            <UIIcons.add color={constantColors.accent} size={30}/>
+          <TouchableOpacity
+            onPress={() => setSelectedValue((prev) => prev + 50)}
+          >
+            <UIIcons.add color={constantColors.accent} size={30} />
           </TouchableOpacity>
         </View>
 
-        <Text className="text-center text-sm text-white font-poppins-semibold border-2 border-white w-12 p-1 mx-auto mt-[-12px]">ml</Text>
+        <Text className="text-center text-sm text-white font-poppins-semibold border-2 border-white w-12 p-1 mx-auto mt-[-12px]">
+          ml
+        </Text>
 
         <Text className="text-white/40 text-sm text-center font-poppins-regular leading-tight">
-          *Your water bottle already tracks your water intake. Increase or decrease if needed.
+          *Your water bottle already tracks your water intake. Increase or
+          decrease if needed.
         </Text>
       </View>
 
@@ -53,18 +78,20 @@ function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
       <View className="h-[1px] bg-white/5 self-stretch" />
 
       <View className="flex flex-row items-center">
-        <TouchableOpacity 
-          className="flex-1 py-5 items-center justify-center active:bg-white/5" 
+        <TouchableOpacity
+          className="flex-1 py-5 items-center justify-center active:bg-white/5"
           onPress={onClose}
         >
-          <Text className="text-white/60 text-md font-poppins-medium">Close</Text>
+          <Text className="text-white/60 text-md font-poppins-medium">
+            Close
+          </Text>
         </TouchableOpacity>
 
         {/* Vertical Line (vr) */}
         <View className="w-[1px] bg-white/5 self-stretch" />
 
-        <TouchableOpacity 
-          className="flex-1 py-5 items-center justify-center active:bg-white/5" 
+        <TouchableOpacity
+          className="flex-1 py-5 items-center justify-center active:bg-white/5"
           onPress={() => onSave(selectedValue)}
         >
           <Text className="text-white text-md font-poppins-medium">Save</Text>
@@ -75,7 +102,6 @@ function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
 }
 
 export default function Index() {
-
   const {
     userProfile,
     healthProfile,
@@ -103,20 +129,27 @@ export default function Index() {
   //   return <ActivityIndicator size="large" />;
   // }
 
+  const waterGoal =
+    healthProfile?.customWaterGoal || recommendedIntake || "2400";
+
   const progress = calculateProgress(totalToday, recommendedIntake);
   const explanation = getIntakeExplanation(recommendedIntake);
 
-  const [userName, setUserName] = useState('')
+  const [userName, setUserName] = useState("");
   const [currentWaterIntake, setCurrentWaterIntake] = useState(0);
-  const [userSettings, setUserSettings] = useState<UserSettings>({ recommendedWaterIntake: 2400, unit: 'ml' });
   const [bleStatus, setBleStatus] = useState('Initializing...');
+  const [userSettings, setUserSettings] = useState<UserSettings>({
+    recommendedWaterIntake: waterGoal,
+    unit: "ml",
+  });
   
   // Use cloud value from store as primary, fallback to local settings
   let recommendedWaterIntake = recommendedIntake || userSettings.recommendedWaterIntake || 2400;
+  
 
   useEffect(() => {
     userProfile?.firstName && setUserName(userProfile?.firstName);
-  }, [userProfile ])
+  }, [userProfile]);
 
   // Sync currentWaterIntake with totalToday from store
   useEffect(() => {
@@ -134,7 +167,7 @@ export default function Index() {
       await refreshTodayIntake();
       console.log('Refreshed water intake from cloud:', totalToday);
     } catch (error) {
-      console.error('Error refreshing water intake:', error);
+      console.error("Error refreshing water intake:", error);
     }
   };
 
@@ -157,7 +190,7 @@ export default function Index() {
   useFocusEffect(
     useCallback(() => {
       refreshWaterIntake();
-    }, [])
+    }, []),
   );
 
   const updateWaterIntake = async (value: number) => {
@@ -194,7 +227,7 @@ export default function Index() {
       const settings = await getUserSettings();
       setUserSettings(settings);
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.error("Error loading settings:", error);
     }
     
     setRefreshing(false);
@@ -204,40 +237,47 @@ export default function Index() {
   const windowHeight = Dimensions.get("window").height;
 
   // Position of water droplet SVG from LiquidProgressGauge
-  const { size: dropletSize, positionX: dropletPositionX, positionY: dropletPositionY } = getDropletPosition(windowWidth, windowHeight);
-
+  const {
+    size: dropletSize,
+    positionX: dropletPositionX,
+    positionY: dropletPositionY,
+  } = getDropletPosition(windowWidth, windowHeight);
 
   return (
     <ScreenBackgroundWrapper className="flex-1">
       <ScrollView
         scrollEnabled={!modalOpen}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ flex: 1, flexGrow: 1, alignItems: "center", justifyContent: "center" }}
+        contentContainerStyle={{
+          flex: 1,
+          flexGrow: 1,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         <TouchableOpacity
-          style={{ 
-            position: 'absolute',
-            top: dropletPositionY, 
+          style={{
+            position: "absolute",
+            top: dropletPositionY,
             left: dropletPositionX,
-            width: dropletSize, 
+            width: dropletSize,
             height: dropletSize,
             borderRadius: dropletSize / 2,
-            overflow: 'hidden',
-            zIndex: 50
+            overflow: "hidden",
+            zIndex: 50,
           }}
           activeOpacity={0.7}
-          onPress={() => { setModalOpen(true) }}
+          onPress={() => {
+            setModalOpen(true);
+          }}
         />
 
         <Modal isOpen={modalOpen} onRequestClose={() => setModalOpen(false)}>
-          <WaterAdjustModal 
-            onClose={() => setModalOpen(false)} 
+          <WaterAdjustModal
+            onClose={() => setModalOpen(false)}
             onSave={(value) => {
               updateWaterIntake(value);
               setModalOpen(false);
@@ -250,18 +290,14 @@ export default function Index() {
           width={windowWidth}
           height={windowHeight}
           value={currentWaterIntake}
-          maxValue={recommendedWaterIntake}
+          maxValue={waterGoal}
           userName={userName}
         />
-        
       </ScrollView>
-      <WeightScreen 
-        onUpdateTotal={updateWaterIntake} 
+      <WeightScreen
+        onUpdateTotal={updateWaterIntake}
         onStatusChange={setBleStatus}
       />
-
     </ScreenBackgroundWrapper>
-
-    
   );
 }

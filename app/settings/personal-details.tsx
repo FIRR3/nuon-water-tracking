@@ -1,36 +1,22 @@
 import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
 import Section from "@/components/Section";
 import SettingsRow from "@/components/SettingsRow";
-import {
-  getPersonalDetails,
-  PersonalDetails as PersonalDetailsType,
-} from "@/services/storage";
-import React, { useEffect, useState } from "react";
+import { useUserStore } from "@/hooks/useUserStore";
+import React, { useState } from "react";
 import { Text, View } from "react-native";
 
 const PersonalDetails = () => {
-  const [personalDetails, setPersonalDetails] =
-    useState<PersonalDetailsType | null>(null);
+  const { userProfile, healthProfile, recommendedIntake } = useUserStore();
 
-  useEffect(() => {
-    const loadPersonalDetails = async () => {
-      try {
-        const details = await getPersonalDetails();
-        setPersonalDetails(details);
-      } catch (error) {
-        console.error("Error loading personal details:", error);
-      }
-    };
+  const [customGoal, setCustomGoal] = useState(
+    healthProfile?.customWaterGoal?.toString() || null,
+  );
 
-    loadPersonalDetails();
-  }, []);
-
-  // Default values if no data is stored
-  const currentWeight = personalDetails?.currentWeight || 56;
-  const height = personalDetails?.height || 1.7;
-  const dateOfBirth = personalDetails?.dateOfBirth || "2007-01-01";
-  const gender = personalDetails?.gender || "Male";
-  const activityLevel = personalDetails?.activityLevel || "Sedentary";
+  let currentWeight = healthProfile?.weight;
+  let height = healthProfile?.height;
+  let dateOfBirth = userProfile?.birthday?.split("T")[0];
+  let gender = healthProfile?.gender;
+  let activityLevel = healthProfile?.activityLevel;
 
   return (
     <ScreenBackgroundWrapper>
@@ -65,7 +51,7 @@ const PersonalDetails = () => {
             Date of birth
           </Text>
           <Text className="text-white text-[15px] font-poppins-semibold">
-            {dateOfBirth.replaceAll("-", " / ")}
+            {dateOfBirth}
           </Text>
         </SettingsRow>
         <SettingsRow showHR>
