@@ -1,5 +1,11 @@
 // constants/icons.ts
-import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import {
+  Feather,
+  FontAwesome6,
+  Ionicons,
+  MaterialIcons,
+} from "@expo/vector-icons";
+import { View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { constantColors } from "./colors";
 
@@ -151,6 +157,49 @@ export const AppIcons = {
   lock: (props: IconProps) => (
     <Feather name="lock" size={20} color="white" {...props} />
   ),
+  fire: (props: IconProps) => {
+    const size = props.size || 20;
+    const color = props.color || constantColors.orange;
+    const circleSize = size * 0.6;
+    // Use a larger container and center everything with flexbox
+    return (
+      <View
+        style={{
+          width: size,
+          height: size * 1.25,
+        }}
+        {...props}
+      >
+        <Svg
+          width={circleSize}
+          height={circleSize}
+          style={{
+            position: "absolute",
+            top: size * 0.35,
+            left: (size - circleSize) / 2,
+          }}
+        >
+          <Path
+            d={`M${circleSize / 2},${circleSize / 2} m-${circleSize / 2},0 a${circleSize / 2},${circleSize / 2} 0 1,0 ${circleSize},0 a${circleSize / 2},${circleSize / 2} 0 1,0 -${circleSize},0`}
+            fill={constantColors.yellow}
+          />
+        </Svg>
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: size,
+            height: size * 1.25,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <FontAwesome6 name="fire" size={size} color={constantColors.orange} />
+        </View>
+      </View>
+    );
+  },
 } as const;
 
 // Export all icons
