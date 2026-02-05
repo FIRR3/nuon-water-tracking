@@ -47,9 +47,13 @@ export class WaterIntakeLogsService {
    */
   async addWaterIntake(userId, amount, source = 'bluetooth') {
     const timestamp = new Date().toISOString();
+    
+    // Ensure amount is an integer (Appwrite requires signed 64-bit integer)
+    const intAmount = Math.round(amount);
+    
     const entry = {
       userId,
-      amount,
+      amount: intAmount,
       source,
       timestamp,
       localId: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -87,9 +91,12 @@ export class WaterIntakeLogsService {
    */
   async syncSingleEntry(entry) {
     try {
+      // Ensure amount is an integer (for backwards compatibility with old queue entries)
+      const intAmount = Math.round(entry.amount);
+      
       const cloudEntry = await waterIntakeAPI.create(
         entry.userId,
-        entry.amount,
+        intAmount,
         entry.source,
         entry.timestamp // Pass the original timestamp
       );

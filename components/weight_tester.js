@@ -72,19 +72,11 @@ export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
             await addWaterIntake(grams, 'bluetooth');
             console.log('Successfully saved to cloud storage');
             
-            // Notify parent component
-            if (onUpdateTotal) {
-              onUpdateTotal(grams);
-            }
+            // No need to notify parent - store will trigger re-renders
           } catch (error) {
             console.error('Error saving water intake to cloud:', error);
             // Don't fail the BLE connection on cloud save errors
             // The offline queue will retry later
-            
-            // Still update the UI
-            if (onUpdateTotal) {
-              onUpdateTotal(grams);
-            }
           }
         },
         (status) => {
