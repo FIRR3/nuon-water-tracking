@@ -1,11 +1,12 @@
 // store/useUserStore.js
 import { create } from 'zustand';
-import { 
-  authAPI, 
-  userProfileAPI, 
-  healthProfileAPI, 
-  waterIntakeAPI 
+import {
+  authAPI,
+  healthProfileAPI,
+  userProfileAPI,
+  waterIntakeAPI
 } from '../services/appwriteService';
+import { waterIntakeLogsService } from '../services/waterIntakeLogsService';
 import { calculateRecommendedWaterIntake } from '../utils/waterCalculations';
 
 export const useUserStore = create((set, get) => ({
@@ -18,6 +19,8 @@ export const useUserStore = create((set, get) => ({
   totalToday: 0,
   isLoading: false,
   error: null,
+  syncStatus: 'idle', // 'idle', 'syncing', 'synced', 'error'
+  pendingSyncCount: 0,
 
   // Actions
   fetchUserData: async () => {
@@ -50,6 +53,9 @@ export const useUserStore = create((set, get) => ({
       const todayLogs = await waterIntakeAPI.getToday(authUser.$id);
       const totalToday = todayLogs.reduce((sum, log) => sum + log.amount, 0);
       
+      // Get pending sync count
+      const pendingSyncCount = await waterIntakeLogsService.getPendingCount();
+      
       set({
         authUser,
         userProfile,
@@ -57,7 +63,13 @@ export const useUserStore = create((set, get) => ({
         recommendedIntake,
         todayIntake: todayLogs,
         totalToday,
+        pendingSyncCount,
         isLoading: false
+      });
+      
+      // Sync offline queue in background
+      waterIntakeLogsService.syncOfflineQueue().then(() => {
+        get().refreshTodayIntake();
       });
       
     } catch (error) {
@@ -99,13 +111,28 @@ export const useUserStore = create((set, get) => ({
   addWaterIntake: async (amount, source = 'bluetooth') => {
     const { authUser, todayIntake, totalToday } = get();
     
+    if (!authUser) {
+      console.error('No authenticated user');
+      throw new Error('User not authenticated');
+    }
+    
     try {
-      const newLog = await waterIntakeAPI.create(authUser.$id, amount, source);
+      // Use the new service with offline queue support
+      const newLog = await waterIntakeLogsService.addWaterIntake(
+        authUser.$id, 
+        amount, 
+        source
+      );
       
+      // Update local state immediately for responsiveness
       set({
         todayIntake: [newLog, ...todayIntake],
         totalToday: totalToday + amount
       });
+      
+      // Update pending count
+      const pendingSyncCount = await waterIntakeLogsService.getPendingCount();
+      set({ pendingSyncCount });
       
       return newLog;
       
@@ -115,16 +142,33 @@ export const useUserStore = create((set, get) => ({
     }
   },
 
+  removeWaterIntake: async (amount) => {
+    if (amount <= 0) {
+      throw new Error('Amount must be positive');
+    }
+    
+    // For removal, we add a negative entry
+    return await get().addWaterIntake(-Math.abs(amount), 'manual');
+  },
+
   refreshTodayIntake: async () => {
     const { authUser } = get();
+    
+    if (!authUser) {
+      return;
+    }
     
     try {
       const todayLogs = await waterIntakeAPI.getToday(authUser.$id);
       const totalToday = todayLogs.reduce((sum, log) => sum + log.amount, 0);
       
+      // Get pending sync count
+      const pendingSyncCount = await waterIntakeLogsService.getPendingCount();
+      
       set({
         todayIntake: todayLogs,
-        totalToday
+        totalToday,
+        pendingSyncCount
       });
       
     } catch (error) {
@@ -132,8 +176,46 @@ export const useUserStore = create((set, get) => ({
     }
   },
 
+  syncOfflineData: async () => {
+    set({ syncStatus: 'syncing' });
+    
+    try {
+      const result = await waterIntakeLogsService.syncOfflineQueue();
+      
+      if (result.failed === 0) {
+        set({ syncStatus: 'synced', pendingSyncCount: 0 });
+      } else {
+        set({ syncStatus: 'error', pendingSyncCount: result.failed });
+      }
+      
+      // Refresh today's data after sync
+      await get().refreshTodayIntake();
+      
+      return result;
+    } catch (error) {
+      console.error('Failed to sync offline data:', error);
+      set({ syncStatus: 'error' });
+      throw error;
+    }
+  },
+
+  // Set up sync listener
+  setupSyncListener: () => {
+    return waterIntakeLogsService.addSyncListener((status, pendingCount) => {
+      set({ 
+        syncStatus: status === 'queued' || status === 'syncing' ? 'syncing' : 
+                   status === 'synced' ? 'synced' : 
+                   status === 'error' ? 'error' : 'idle',
+        pendingSyncCount: pendingCount 
+      });
+    });
+  },
+
   logout: async () => {
     try {
+      // Try to sync any pending data before logout
+      await waterIntakeLogsService.syncOfflineQueue();
+      
       await authAPI.logout();
       set({
         authUser: null,
@@ -141,7 +223,9 @@ export const useUserStore = create((set, get) => ({
         healthProfile: null,
         recommendedIntake: null,
         todayIntake: [],
-        totalToday: 0
+        totalToday: 0,
+        syncStatus: 'idle',
+        pendingSyncCount: 0
       });
     } catch (error) {
       console.error('Logout failed:', error);

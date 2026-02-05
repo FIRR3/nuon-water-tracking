@@ -4,7 +4,7 @@ import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
 import WeightScreen from "@/components/weight_tester";
 import { constantColors } from "@/constants/colors";
 import { UIIcons } from "@/constants/icon";
-import { addWaterEntry, getTodayWaterIntake, getUserSettings, removeWaterAmount, UserSettings } from "@/services/storage";
+import { getUserSettings, UserSettings } from "@/services/storage";
 import { calculateProgress, getIntakeExplanation } from "@/utils/waterCalculations";
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
@@ -82,11 +82,21 @@ export default function Index() {
     recommendedIntake,
     totalToday,
     isLoading,
-    fetchUserData
+    fetchUserData,
+    addWaterIntake: addWaterIntakeToCloud,
+    refreshTodayIntake,
+    syncOfflineData,
+    setupSyncListener,
+    syncStatus,
+    pendingSyncCount
   } = useUserStore();
 
   useEffect(() => {
     fetchUserData();
+    
+    // Set up sync listener
+    const unsubscribe = setupSyncListener();
+    return () => unsubscribe();
   }, []);
 
   // if (isLoading) {
@@ -101,8 +111,8 @@ export default function Index() {
   const [userSettings, setUserSettings] = useState<UserSettings>({ recommendedWaterIntake: 2400, unit: 'ml' });
   const [bleStatus, setBleStatus] = useState('Initializing...');
   
-  // Use local storage settings for recommended intake, fallback to store value when Appwrite is implemented
-  let recommendedWaterIntake = userSettings.recommendedWaterIntake || recommendedIntake || 2400;
+  // Use cloud value from store as primary, fallback to local settings
+  let recommendedWaterIntake = recommendedIntake || userSettings.recommendedWaterIntake || 2400;
 
   useEffect(() => {
     userProfile?.firstName && setUserName(userProfile?.firstName);
@@ -118,36 +128,30 @@ export default function Index() {
   const [modalOpen, setModalOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Function to refresh water intake from storage
+  // Function to refresh water intake from cloud
   const refreshWaterIntake = async () => {
     try {
-      const intake = await getTodayWaterIntake();
-      console.log('Refreshed water intake from storage:', intake);
-      setCurrentWaterIntake(intake);
+      await refreshTodayIntake();
+      console.log('Refreshed water intake from cloud:', totalToday);
     } catch (error) {
       console.error('Error refreshing water intake:', error);
     }
   };
 
-  // Load data on component mount from local storage
+  // Load user settings from local storage (for backwards compatibility)
   useEffect(() => {
-    const loadData = async () => {
+    const loadSettings = async () => {
       try {
-        const [waterIntake, settings] = await Promise.all([
-          getTodayWaterIntake(),
-          getUserSettings()
-        ]);
-        console.log('Loaded from local storage - Water:', waterIntake, 'Settings:', settings);
-        setCurrentWaterIntake(waterIntake);
+        const settings = await getUserSettings();
+        console.log('Loaded settings from local storage:', settings);
         setUserSettings(settings);
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Error loading settings:', error);
       }
     };
 
-    loadData();
+    loadSettings();
   }, []);
-
 
   // Refresh water intake when screen comes into focus
   useFocusEffect(
@@ -156,39 +160,43 @@ export default function Index() {
     }, [])
   );
 
-const updateWaterIntake = async (value: number) => {
-  if (value > 0) {
-    // Adding water
+  const updateWaterIntake = async (value: number) => {
     try {
-      await addWaterEntry(value);
-      // Refresh from storage to get the actual total
-      await refreshWaterIntake();
+      if (value !== 0) {
+        // Use cloud storage via useUserStore
+        await addWaterIntakeToCloud(value, 'manual');
+        console.log('Successfully updated water intake:', value);
+      }
     } catch (error) {
-      console.error('Error adding water entry:', error);
+      console.error('Error updating water intake:', error);
+      // Show user-friendly error message
     }
-  } else if (value < 0) {
-    // Removing water
-    try {
-      await removeWaterAmount(Math.abs(value));
-      // Refresh from storage to get the actual total
-      await refreshWaterIntake();
-    } catch (error) {
-      console.error('Error removing water entry:', error);
-    }
-  }
-};
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Refresh water intake from storage
+    
+    // Refresh from cloud
     await refreshWaterIntake();
-    // Reload user settings in case they changed
+    
+    // Trigger offline sync if there are pending items
+    if (pendingSyncCount > 0) {
+      try {
+        await syncOfflineData();
+        console.log('Synced offline data during refresh');
+      } catch (error) {
+        console.error('Error syncing offline data:', error);
+      }
+    }
+    
+    // Reload user settings
     try {
       const settings = await getUserSettings();
       setUserSettings(settings);
     } catch (error) {
       console.error('Error loading settings:', error);
     }
+    
     setRefreshing(false);
   };
 

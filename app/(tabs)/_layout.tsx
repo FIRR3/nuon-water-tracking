@@ -1,9 +1,13 @@
 import Header from "@/components/Header";
 import { TabBar } from "@/components/TabBar";
+import { useSyncManager } from "@/hooks/useSyncManager";
 import { Tabs } from "expo-router";
 import React from "react";
 
 const _TabLayout = () => {
+  // Enable automatic syncing of offline water intake logs
+  useSyncManager(true);
+  
   return (
     <Tabs
       tabBar={(props) => <TabBar {...props} />}

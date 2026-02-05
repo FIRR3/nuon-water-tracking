@@ -67,7 +67,8 @@ export const healthProfileAPI = {
 
 // ============= WATER INTAKE LOGS =============
 export const waterIntakeAPI = {
-  async create(userId, amount, source = 'bluetooth') {
+  async create(userId, amount, source = 'bluetooth', timestamp = null) {
+    const now = new Date().toISOString();
     return await databases.createDocument(
       DATABASE_ID,
       'water_intake_logs',
@@ -75,9 +76,9 @@ export const waterIntakeAPI = {
       {
         user: userId,
         amount,
-        timestamp: new Date().toISOString(),
+        timestamp: timestamp || now,
         source,
-        syncedAt: new Date().toISOString()
+        syncedAt: now
       }
     );
   },

@@ -1,13 +1,14 @@
 // src/components/WeightScreen.js
-import { appendRow, parseWeight, scanAndConnect } from '@/ble/bleservice.js';
+import { parseWeight, scanAndConnect } from '@/ble/bleservice.js';
+import { useUserStore } from '@/hooks/useUserStore';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useState } from 'react';
 import { Alert, PermissionsAndroid, Platform, View } from 'react-native';
 
 export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
   const [currentWeight, setCurrentWeight] = useState(0);
-  const [totalWeight, setTotalWeight] = useState(0);
   const [status, setStatus] = useState('Initializing...');
+  const { addWaterIntake } = useUserStore();
 
   useKeepAwake();
 
@@ -60,15 +61,30 @@ export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
         async (data) => {
           if (!isMounted) return;
 
-          console.log('Processing data:', data);
+          console.log('Processing BLE data:', data);
           const grams = parseWeight(data);
           console.log('Parsed grams:', grams);
           setCurrentWeight(grams);
 
-          const total = await appendRow(grams);
-          setTotalWeight(total);
-          if (onUpdateTotal) {
-            onUpdateTotal(grams);
+          // Save to cloud storage via useUserStore
+          try {
+            console.log('Saving water intake to cloud:', grams);
+            await addWaterIntake(grams, 'bluetooth');
+            console.log('Successfully saved to cloud storage');
+            
+            // Notify parent component
+            if (onUpdateTotal) {
+              onUpdateTotal(grams);
+            }
+          } catch (error) {
+            console.error('Error saving water intake to cloud:', error);
+            // Don't fail the BLE connection on cloud save errors
+            // The offline queue will retry later
+            
+            // Still update the UI
+            if (onUpdateTotal) {
+              onUpdateTotal(grams);
+            }
           }
         },
         (status) => {
