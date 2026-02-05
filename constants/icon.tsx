@@ -1,5 +1,6 @@
 // constants/icons.ts
 import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import Svg, { Path } from "react-native-svg";
 import { constantColors } from "./colors";
 
 // Type-safe icon props
@@ -113,6 +114,28 @@ export const AppIcons = {
   droplet: (props: IconProps) => (
     <Feather name="droplet" size={20} color="white" {...props} />
   ),
+  dropletFilled: (props: IconProps) => {
+    const size = props.size || 20;
+    const color = props.color || "white";
+    return (
+      <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        style={props.style}
+      >
+        <Path
+          d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"
+          fill={color}
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    );
+  },
   activity: (props: IconProps) => (
     <MaterialIcons name="directions-run" size={20} color="white" {...props} />
   ),
