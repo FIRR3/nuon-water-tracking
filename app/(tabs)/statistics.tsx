@@ -15,6 +15,24 @@ type BarDataItem = {
   topLabelComponent?: () => React.ReactElement;
 };
 
+// // 1. Get current hour
+// const currentHour = new Date().getHours();
+
+// // 2. Fetch today's water logs from database
+// const todayLogs = await waterIntakeAPI.getToday(authUser.$id);
+
+// // 3. Group logs by hour and calculate cumulative totals
+// const hourlyIntake = {};
+// let cumulative = 0;
+// for (let hour = 0; hour < 24; hour++) {
+//   const logsInHour = todayLogs.filter(log => {
+//     const logHour = new Date(log.timestamp).getHours();
+//     return logHour === hour;
+//   });
+//   cumulative += logsInHour.reduce((sum, log) => sum + log.amount, 0);
+//   hourlyIntake[hour] = cumulative;
+// }
+
 const Statistics = () => {
   const { userHealthProfile, recommendedIntake } = useUserStore();
 
@@ -51,62 +69,98 @@ const Statistics = () => {
     );
   });
 
-  const customDataPoint = () => {
-    return (
-      <View
-        style={{
-          width: 20,
-          height: 20,
-          backgroundColor: "white",
-          borderWidth: 4,
-          borderRadius: 10,
-          borderColor: "#07BAD1",
-        }}
-      />
-    );
-  };
-  const customLabel = (val: any) => {
-    return (
-      <View style={{ width: 70, marginLeft: 7 }}>
-        <Text style={{ color: "white", fontWeight: "bold" }}>{val}</Text>
-      </View>
-    );
+  // Generate 24 hourly data points for today's water intake
+  // Mock data: simulate water consumption throughout the day (current time: 18:00)
+  const currentHour = 18; // In production, use: new Date().getHours()
+
+  // Mock cumulative water intake per hour (in ml)
+  const hourlyIntake = {
+    0: 0,
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+    6: 250, // Morning: first drink
+    7: 450, // Breakfast
+    8: 700,
+    9: 950,
+    10: 1200, // Mid-morning
+    11: 1450,
+    12: 1750, // Lunch
+    13: 2000,
+    14: 2200,
+    15: 2400,
+    16: 2550,
+    17: 2700,
+    18: 2850, // Current hour - 6pm
+    // Future hours (after current time) - no data yet
+    19: 2850,
+    20: 2850,
+    21: 2850,
+    22: 2850,
+    23: 2850,
   };
 
-  const lineData = [
-    { value: 0, label: "0" },
-    { value: 0, hideDataPoint: true },
-    { value: 0, hideDataPoint: true },
-    { value: 0, hideDataPoint: true },
-    { value: 0, hideDataPoint: true },
-    { value: 0, hideDataPoint: true },
-    { value: 250, hideDataPoint: true },
-    { value: 450, hideDataPoint: true },
-    { value: 600, hideDataPoint: true },
-    { value: 600, hideDataPoint: true },
-    { value: 1200, hideDataPoint: true },
-    { value: 1750, hideDataPoint: true },
-    { value: 2000, hideDataPoint: true },
-    { value: 2100, hideDataPoint: true },
-    { value: 2300, hideDataPoint: true },
-    { value: 2400, hideDataPoint: true },
-    { value: 2550, hideDataPoint: true },
-    { value: 2750, hideDataPoint: true },
-    {
-      value: 2800,
-    },
-    { value: 2850, hideDataPoint: true },
-    { value: 2950, hideDataPoint: true },
-    { value: 3000, hideDataPoint: true },
-    { value: 3100, hideDataPoint: true },
-    { value: 3150, hideDataPoint: true },
-    {
-      value: 3150,
-      hideDataPoint: true,
-      label: "24:00",
-      dataPointText: "3.15L",
-    },
-  ];
+  // Generate all 24 hours but keep values flat after current hour
+  const lineData = Array.from({ length: 24 }, (_, hour) => {
+    const value =
+      hour <= currentHour ? hourlyIntake[hour] || 0 : hourlyIntake[currentHour];
+    const isCurrentHour = hour === currentHour;
+    const isStartTime = hour === 0;
+    const isEndTime = hour === 23;
+    // Don't show 24:00 if current hour is >= 21 to avoid overlap
+    const showEndTime = isEndTime && currentHour < 21;
+
+    return {
+      value: value,
+      label: isStartTime
+        ? "0:00"
+        : isCurrentHour
+          ? `${hour}:00`
+          : showEndTime
+            ? "24:00"
+            : "",
+      hideDataPoint: !isCurrentHour,
+      ...(isCurrentHour && {
+        customDataPoint: () => (
+          <View
+            style={{
+              width: scale(14),
+              height: scale(14),
+              backgroundColor: "white",
+              borderWidth: scale(3),
+              borderRadius: scale(7),
+              borderColor: constantColors.accent,
+            }}
+          />
+        ),
+        dataPointLabelComponent: () => (
+          <View
+            style={{
+              backgroundColor: "black",
+              paddingHorizontal: scale(8),
+              paddingVertical: scale(4),
+              borderRadius: scale(4),
+            }}
+          >
+            <Text
+              style={{
+                color: "white",
+                fontSize: scale(10),
+                fontWeight: "bold",
+              }}
+              numberOfLines={1}
+            >
+              {(value / 1000).toFixed(1)}L
+            </Text>
+          </View>
+        ),
+        dataPointLabelShiftY: scale(-32),
+        dataPointLabelShiftX: scale(-22),
+      }),
+    };
+  });
 
   // For the streak progress circle
   const strokeWidth = scale(7);
@@ -128,6 +182,21 @@ const Statistics = () => {
     inputRange: [0, 1],
     outputRange: [circumference, 0],
   });
+
+  const customDataPoint = () => {
+    return (
+      <View
+        style={{
+          width: 20,
+          height: 20,
+          backgroundColor: "white",
+          borderWidth: 4,
+          borderRadius: 10,
+          borderColor: "#07BAD1",
+        }}
+      />
+    );
+  };
 
   return (
     <ScreenBackgroundWrapper className="">
@@ -234,34 +303,42 @@ const Statistics = () => {
 
         <View className="flex flex-col bg-dark-secondary px-5 py-4 gap-3 rounded-xl">
           <View className="flex-row gap-2 items-center mb-2">
-            {/* <AppIcons.dropletFilled
-              size={scale(17)}
-              color={constantColors.accent}
-            /> */}
             <Text className="font-poppins-medium text-md text-white">
-              {/* {(waterGoal / 1000).toFixed(1) + "L"} */}
               Today
             </Text>
           </View>
-          <LineChart
-            data={lineData}
-            height={scale(120)}
-            spacing={scale(12)}
-            initialSpacing={0}
-            // disableScroll
-            thickness1={scale(4)}
-            hideYAxisText
-            hideAxesAndRules
-            color1={constantColors.accent}
-            textColor1="white"
-            // hideDataPoints
-            dataPointsHeight={6}
-            dataPointsWidth={6}
-            dataPointsColor1={constantColors.accent}
-            textShiftY={-2}
-            textShiftX={-5}
-            textFontSize={10}
-          />
+          <View>
+            <LineChart
+              height={scale(200)}
+              thickness={scale(4)}
+              color={constantColors.accent}
+              maxValue={3000}
+              noOfSections={3}
+              areaChart
+              yAxisTextStyle={{ color: "lightgray", fontSize: scale(10) }}
+              xAxisLabelTextStyle={{
+                color: "white",
+                fontSize: scale(10),
+                width: scale(30),
+              }}
+              data={lineData}
+              curved
+              startFillColor={constantColors.accent}
+              endFillColor={constantColors.accent}
+              startOpacity={0.4}
+              endOpacity={0.1}
+              spacing={scale(10)}
+              rulesColor="gray"
+              rulesType="solid"
+              initialSpacing={0}
+              endSpacing={scale(8)}
+              yAxisColor="lightgray"
+              xAxisColor="lightgray"
+              dataPointsHeight={scale(8)}
+              dataPointsWidth={scale(8)}
+              dataPointsColor={constantColors.accent}
+            />
+          </View>
         </View>
       </ScrollView>
     </ScreenBackgroundWrapper>
