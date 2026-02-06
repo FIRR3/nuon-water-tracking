@@ -4,6 +4,7 @@ import SettingsRow from "@/components/SettingsRow";
 import ToggleButton from "@/components/ToggleButton";
 import { AppIcons } from "@/constants/icon";
 import { useUserStore } from "@/hooks/useUserStore";
+import { requestNotificationPermissions } from "@/services/notifications";
 import React, { useState } from "react";
 import { ScrollView, Text } from "react-native";
 import { scale } from "react-native-size-matters";
@@ -129,7 +130,10 @@ const Settings = () => {
             </Text>
             <ToggleButton
               isToggled={notificationsEnabled}
-              onPress={() => setNotificationsEnabled((prev) => !prev)}
+              onPress={() => {
+                setNotificationsEnabled((prev) => !prev);
+                // requestNotificationPermissions();
+              }}
             />
           </SettingsRow>
 

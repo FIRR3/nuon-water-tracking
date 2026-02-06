@@ -7,6 +7,7 @@ import {
   databases,
   USERS_TABLE_ID,
 } from "@/services/appwrite";
+import { requestNotificationPermissions } from "@/services/notifications";
 import * as Font from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -20,7 +21,7 @@ const customFonts = {
   "Poppins-SemiBold": require("@/assets/fonts/Poppins/Poppins-SemiBold.ttf"),
   "Poppins-Bold": require("@/assets/fonts/Poppins/Poppins-Bold.ttf"),
 
-  "MuseoModerno-Regular": require('@/assets/fonts/MuseoModerno/MuseoModerno-Regular.ttf')
+  "MuseoModerno-Regular": require("@/assets/fonts/MuseoModerno/MuseoModerno-Regular.ttf"),
 };
 
 export default function RootLayout() {
@@ -36,6 +37,10 @@ export default function RootLayout() {
   const colors = useThemeColors();
   const [appIsReady, setAppIsReady] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+  useEffect(() => {
+    // requestNotificationPermissions();
+  }, []);
 
   useEffect(() => {
     if (!appIsReady) return;
