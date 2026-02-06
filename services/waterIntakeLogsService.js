@@ -1,6 +1,7 @@
 // services/waterIntakeLogsService.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { waterIntakeAPI } from './appwriteService';
+import { addWaterEntry as saveToLocalStorage } from './storage';
 
 const OFFLINE_QUEUE_KEY = '@water_intake_offline_queue';
 const MAX_RETRY_ATTEMPTS = 5;
@@ -62,7 +63,11 @@ export class WaterIntakeLogsService {
     };
 
     try {
-      // First, add to offline queue
+      // ALWAYS save to local storage first (dual write pattern)
+      await saveToLocalStorage(intAmount);
+      console.log('Saved to local storage:', intAmount);
+      
+      // Add to offline queue
       await this.addToOfflineQueue(entry);
 
       // Try to sync immediately
@@ -73,13 +78,13 @@ export class WaterIntakeLogsService {
         await this.removeFromOfflineQueue(entry.localId);
         return cloudEntry;
       } else {
-        // Failed, but it's in the queue for retry
-        console.log('Entry saved offline, will retry sync later');
+        // Failed, but it's in local storage and queue for retry
+        console.log('Entry saved locally and offline queue, will retry cloud sync later');
         return entry; // Return local entry
       }
     } catch (error) {
       console.error('Error adding water intake:', error);
-      // Entry is in offline queue, will be retried
+      // Entry is in offline queue and local storage, will be retried
       throw error;
     }
   }
@@ -265,6 +270,22 @@ export class WaterIntakeLogsService {
   async getFailedEntries() {
     const queue = await this.getOfflineQueue();
     return queue.filter(entry => entry.retryCount >= MAX_RETRY_ATTEMPTS);
+  }
+
+  /**
+   * Get today's entries from offline queue
+   * @param {string} userId - User ID to filter by
+   * @returns {Promise<Array>} Today's offline entries
+   */
+  async getTodayOfflineEntries(userId) {
+    const queue = await this.getOfflineQueue();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    
+    return queue.filter(entry => {
+      const entryDate = new Date(entry.timestamp);
+      return entry.userId === userId && entryDate >= todayStart;
+    });
   }
 }
 

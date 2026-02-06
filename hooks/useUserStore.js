@@ -6,6 +6,7 @@ import {
   userProfileAPI,
   waterIntakeAPI
 } from '../services/appwriteService';
+import { getTodayWaterIntake as getLocalWaterIntake } from '../services/storage';
 import { waterIntakeLogsService } from '../services/waterIntakeLogsService';
 import { calculateRecommendedWaterIntake } from '../utils/waterCalculations';
 
@@ -50,8 +51,30 @@ export const useUserStore = create((set, get) => ({
       }
       
       // Get today's intake
-      const todayLogs = await waterIntakeAPI.getToday(authUser.$id);
-      const totalToday = todayLogs.reduce((sum, log) => sum + log.amount, 0);
+      let todayLogs = [];
+      let totalToday = 0;
+      let usedLocalFallback = false;
+      
+      try {
+        todayLogs = await waterIntakeAPI.getToday(authUser.$id);
+        totalToday = todayLogs.reduce((sum, log) => sum + log.amount, 0);
+        console.log('Loaded water intake from cloud:', totalToday);
+      } catch (error) {
+        console.log('Could not fetch cloud data, using local storage:', error.message);
+        // Fallback to local storage
+        totalToday = await getLocalWaterIntake();
+        usedLocalFallback = true;
+        console.log('Loaded water intake from local storage:', totalToday);
+      }
+      
+      // If we used local fallback, don't add offline entries again (they're already in local storage)
+      if (!usedLocalFallback) {
+        // Add offline entries only if we got cloud data
+        const offlineEntries = await waterIntakeLogsService.getTodayOfflineEntries(authUser.$id);
+        const offlineTotal = offlineEntries.reduce((sum, entry) => sum + entry.amount, 0);
+        totalToday += offlineTotal;
+        todayLogs = [...todayLogs, ...offlineEntries];
+      }
       
       // Get pending sync count
       const pendingSyncCount = await waterIntakeLogsService.getPendingCount();
@@ -68,8 +91,14 @@ export const useUserStore = create((set, get) => ({
       });
       
       // Sync offline queue in background
-      waterIntakeLogsService.syncOfflineQueue().then(() => {
-        get().refreshTodayIntake();
+      waterIntakeLogsService.syncOfflineQueue().then((result) => {
+        // Only refresh if something was actually synced
+        if (result.synced > 0) {
+          get().refreshTodayIntake();
+        }
+      }).catch((error) => {
+        console.log('Background sync failed (offline?):', error.message);
+        // Don't refresh on sync failure to preserve offline state
       });
       
     } catch (error) {
@@ -117,17 +146,21 @@ export const useUserStore = create((set, get) => ({
     }
     
     try {
+      // Ensure amount is an integer
+      const intAmount = Math.round(amount);
+      
       // Use the new service with offline queue support
       const newLog = await waterIntakeLogsService.addWaterIntake(
         authUser.$id, 
-        amount, 
+        intAmount, 
         source
       );
       
       // Update local state immediately for responsiveness
+      // Use the integer amount to ensure consistency
       set({
         todayIntake: [newLog, ...todayIntake],
-        totalToday: totalToday + amount
+        totalToday: totalToday + intAmount
       });
       
       // Update pending count
@@ -158,22 +191,42 @@ export const useUserStore = create((set, get) => ({
       return;
     }
     
+    // Try to get cloud data
+    let todayLogs = [];
+    let totalToday = 0;
+    let usedLocalFallback = false;
+    
     try {
-      const todayLogs = await waterIntakeAPI.getToday(authUser.$id);
-      const totalToday = todayLogs.reduce((sum, log) => sum + log.amount, 0);
-      
-      // Get pending sync count
-      const pendingSyncCount = await waterIntakeLogsService.getPendingCount();
-      
-      set({
-        todayIntake: todayLogs,
-        totalToday,
-        pendingSyncCount
-      });
-      
+      todayLogs = await waterIntakeAPI.getToday(authUser.$id);
+      totalToday = todayLogs.reduce((sum, log) => sum + log.amount, 0);
+      console.log('Refreshed from cloud:', totalToday);
     } catch (error) {
-      console.error('Failed to refresh intake:', error);
+      console.log('Could not fetch from cloud, using local storage:', error.message);
+      // Fallback to local storage
+      totalToday = await getLocalWaterIntake();
+      usedLocalFallback = true;
+      console.log('Refreshed from local storage:', totalToday);
     }
+    
+    // If we used local fallback, don't add offline entries again
+    if (!usedLocalFallback) {
+      // Get offline queue entries for today only if we got cloud data
+      const offlineEntries = await waterIntakeLogsService.getTodayOfflineEntries(authUser.$id);
+      const offlineTotal = offlineEntries.reduce((sum, entry) => sum + entry.amount, 0);
+      
+      // Merge: cloud logs + offline entries
+      totalToday += offlineTotal;
+      todayLogs = [...todayLogs, ...offlineEntries];
+    }
+    
+    // Get pending sync count
+    const pendingSyncCount = await waterIntakeLogsService.getPendingCount();
+    
+    set({
+      todayIntake: todayLogs,
+      totalToday,
+      pendingSyncCount
+    });
   },
 
   syncOfflineData: async () => {
