@@ -476,45 +476,45 @@ NetInfo.addEventListener(state => {
 ## Testing Checklist
 
 ### Online Mode
-- [x] Loads data from cloud successfully
-- [x] Displays correct hourly data
-- [x] Displays correct weekly data
-- [x] Calculates streak correctly
-- [x] Shows online indicator (no offline badge)
+- [y] Loads data from cloud successfully
+- [y] Displays correct hourly data
+- [y] Displays correct weekly data
+- [y] Calculates streak correctly
+- [y] Shows online indicator (no offline badge)
 
 ### Offline Mode
-- [x] Falls back to local storage
-- [x] Displays offline indicator
-- [x] Shows cached data
-- [x] Pull-to-refresh works
-- [x] No errors in console
+- [y] Falls back to local storage
+- [y] Displays offline indicator
+- [y] Shows cached data
+- [y] Pull-to-refresh works
+- [y] No errors in console
 
 ### Network Transitions
-- [x] Offline → Online: Auto-refreshes
-- [x] Online → Offline: Shows indicator
-- [x] Intermittent connection: Handles gracefully
+- [y] Offline → Online: Auto-refreshes
+- [y] Online → Offline: Shows indicator
+- [y] Intermittent connection: Handles gracefully
 
 ### Data Accuracy
-- [x] Hourly data is cumulative
-- [x] Weekly totals match sum of logs
-- [x] Streak counts consecutive days correctly
-- [x] Current hour marked on line chart
-- [x] Goal-reached bars are blue
+- [y] Hourly data is cumulative
+- [y] Weekly totals match sum of logs
+- [y] Streak counts consecutive days correctly
+- [y] Current hour marked on line chart
+- [y] Goal-reached bars are blue
 
 ### Edge Cases
-- [x] New user (no data): Shows zeros
+- [y] New user (no data): Shows zeros
 - [x] Partial day: Shows only up to current hour
-- [x] Missing days: Fills with zeros
+- [y] Missing days: Fills with zeros
 - [x] Midnight crossing: Day boundaries correct
-- [x] Goal changes: UI updates
+- [y] Goal changes: UI updates
 
 ### UI/UX
-- [x] Loading state displays
+- [y] Loading state displays
 - [x] Error messages show
-- [x] Pull-to-refresh works
-- [x] Charts animate smoothly
-- [x] Labels are readable
-- [x] Offline badge visible
+- [y] Pull-to-refresh works
+- [y] Charts animate smoothly
+- [n] Labels are readable
+- [y] Offline badge visible (change color to blue)
 
 ## Performance Considerations
 

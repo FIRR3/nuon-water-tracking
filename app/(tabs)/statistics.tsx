@@ -50,8 +50,21 @@ const Statistics = () => {
   const [refreshing, setRefreshing] = React.useState(false);
 
   const waterGoal = userHealthProfile?.customWaterGoal || recommendedIntake || 2400;
-  const maxValue = Math.max(waterGoal + 800, ...rawWeeklyData.map(d => d.value), waterGoal);
   const currentHour = new Date().getHours();
+
+  // Calculate adaptive maxValue for weekly chart (baseline: waterGoal, add 20% padding)
+  const maxWeeklyValue = Math.max(
+    ...rawWeeklyData.map(d => d.value),
+    waterGoal
+  );
+  const weeklyChartMax = Math.ceil(maxWeeklyValue * 1.2 / 500) * 500; // Round up to nearest 500
+
+  // Calculate adaptive maxValue for hourly chart (baseline: waterGoal, add 20% padding)
+  const maxHourlyValue = Math.max(
+    ...rawHourlyData.map(d => d.value),
+    waterGoal
+  );
+  const hourlyChartMax = Math.ceil(maxHourlyValue * 1.2 / 500) * 500; // Round up to nearest 500
 
   // Handle pull-to-refresh
   const onRefresh = React.useCallback(async () => {
@@ -67,16 +80,23 @@ const Statistics = () => {
       ...dailyLog,
       frontColor: isGoalReached ? constantColors.accent : 'lightgray',
       topLabelComponent: () => (
-        <Text
+        <View
           style={{
-            color: isGoalReached ? "white" : constantColors.accent,
-            fontSize: scale(11),
-            fontWeight: "bold",
-            marginBottom: scale(-22),
+            marginBottom: scale(4),
+            alignItems: 'center',
+            width: scale(28),
           }}
         >
-          {(dailyLog.value / 1000).toFixed(1)}
-        </Text>
+          <Text
+            style={{
+              color: isGoalReached ? "white" : constantColors.accent,
+              fontSize: scale(12),
+              fontWeight: "bold",
+            }}
+          >
+            {(dailyLog.value / 1000).toFixed(1)}
+          </Text>
+        </View>
       ),
     };
   });
@@ -103,16 +123,18 @@ const Statistics = () => {
           <View
             style={{
               backgroundColor: "black",
-              paddingHorizontal: scale(8),
-              paddingVertical: scale(4),
-              borderRadius: scale(4),
+              paddingHorizontal: scale(12),
+              paddingVertical: scale(6),
+              borderRadius: scale(6),
             }}
           >
             <Text
               style={{
                 color: "white",
-                fontSize: scale(10),
+                fontSize: scale(13),
+                width: scale(60),
                 fontWeight: "bold",
+                textAlign: "center"
               }}
               numberOfLines={1}
             >
@@ -120,8 +142,8 @@ const Statistics = () => {
             </Text>
           </View>
         ),
-        dataPointLabelShiftY: scale(-32),
-        dataPointLabelShiftX: scale(-22),
+        dataPointLabelShiftY: scale(-10),
+        dataPointLabelShiftX: scale(-30),
       }),
     };
   });
@@ -168,7 +190,7 @@ const Statistics = () => {
       {!isOnline && (
         <View
           style={{
-            backgroundColor: constantColors.orange,
+            backgroundColor: constantColors.accent,
             paddingVertical: scale(8),
             paddingHorizontal: scale(16),
             alignItems: 'center',
@@ -178,7 +200,7 @@ const Statistics = () => {
           }}
         >
           <Text style={{ color: 'white', fontSize: scale(12), fontWeight: '600' }}>
-            📵 Offline - Showing locally stored data
+            Offline - Showing locally stored data
           </Text>
         </View>
       )}
@@ -197,7 +219,7 @@ const Statistics = () => {
           }}
         >
           <Text style={{ color: 'white', fontSize: scale(12) }}>
-            ⚠️ {error}
+            {error}
           </Text>
         </View>
       )}
@@ -244,8 +266,8 @@ const Statistics = () => {
 
           <BarChart
             barWidth={scale(28)}
-            maxValue={maxValue}
-            stepValue={maxValue}
+            maxValue={weeklyChartMax}
+            stepValue={weeklyChartMax}
             noOfSections={1}
             initialSpacing={0}
             endSpacing={0}
@@ -333,7 +355,7 @@ const Statistics = () => {
               height={scale(160)}
               thickness={scale(4)}
               color={constantColors.accent}
-              maxValue={3000}
+              maxValue={hourlyChartMax}
               noOfSections={3}
               areaChart
               yAxisTextStyle={{ color: "lightgray", fontSize: scale(10) }}
@@ -344,6 +366,8 @@ const Statistics = () => {
               }}
               data={lineData}
               curved
+              curveType={1}
+              curvature={0.2}
               startFillColor={constantColors.accent}
               endFillColor={constantColors.accent}
               startOpacity={0.4}
