@@ -207,7 +207,7 @@ const Statistics = () => {
           paddingHorizontal: scale(20),
           paddingBottom: scale(130),
           display: "flex",
-          gap: scale(35),
+          gap: scale(45),
         }}
         contentInsetAdjustmentBehavior="automatic"
       >
@@ -309,7 +309,7 @@ const Statistics = () => {
           </View>
           <View>
             <LineChart
-              height={scale(200)}
+              height={scale(160)}
               thickness={scale(4)}
               color={constantColors.accent}
               maxValue={3000}
@@ -330,7 +330,7 @@ const Statistics = () => {
               spacing={scale(10)}
               rulesColor="gray"
               rulesType="solid"
-              initialSpacing={0}
+              initialSpacing={5}
               endSpacing={scale(8)}
               yAxisColor="lightgray"
               xAxisColor="lightgray"
