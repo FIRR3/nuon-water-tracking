@@ -1,33 +1,27 @@
 import {
-  getDropletPosition,
-  LiquidProgressGauge,
+    getDropletPosition,
+    LiquidProgressGauge,
 } from "@/components/LiquidProgressGauge";
 import Modal from "@/components/Modal";
 import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
 import WeightScreen from "@/components/weight_tester";
 import { constantColors } from "@/constants/colors";
 import { UIIcons } from "@/constants/icon";
+import { getUserSettings, UserSettings } from "@/services/storage";
 import {
-  addWaterEntry,
-  getTodayWaterIntake,
-  getUserSettings,
-  removeWaterAmount,
-  UserSettings,
-} from "@/services/storage";
-import {
-  calculateProgress,
-  getIntakeExplanation,
+    calculateProgress,
+    getIntakeExplanation,
 } from "@/utils/waterCalculations";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  Dimensions,
-  RefreshControl,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    Dimensions,
+    RefreshControl,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useUserStore } from "../../hooks/useUserStore";
 
@@ -114,12 +108,12 @@ export default function Index() {
     syncOfflineData,
     setupSyncListener,
     syncStatus,
-    pendingSyncCount
+    pendingSyncCount,
   } = useUserStore();
 
   useEffect(() => {
     fetchUserData();
-    
+
     // Set up sync listener
     const unsubscribe = setupSyncListener();
     return () => unsubscribe();
@@ -137,15 +131,15 @@ export default function Index() {
 
   const [userName, setUserName] = useState("");
   const [currentWaterIntake, setCurrentWaterIntake] = useState(0);
-  const [bleStatus, setBleStatus] = useState('Initializing...');
+  const [bleStatus, setBleStatus] = useState("Initializing...");
   const [userSettings, setUserSettings] = useState<UserSettings>({
     recommendedWaterIntake: waterGoal,
     unit: "ml",
   });
-  
+
   // Use cloud value from store as primary, fallback to local settings
-  let recommendedWaterIntake = recommendedIntake || userSettings.recommendedWaterIntake || 2400;
-  
+  let recommendedWaterIntake =
+    recommendedIntake || userSettings.recommendedWaterIntake || 2400;
 
   useEffect(() => {
     userProfile?.firstName && setUserName(userProfile?.firstName);
@@ -165,7 +159,7 @@ export default function Index() {
   const refreshWaterIntake = async () => {
     try {
       await refreshTodayIntake();
-      console.log('Refreshed water intake from cloud:', totalToday);
+      console.log("Refreshed water intake from cloud:", totalToday);
     } catch (error) {
       console.error("Error refreshing water intake:", error);
     }
@@ -176,10 +170,10 @@ export default function Index() {
     const loadSettings = async () => {
       try {
         const settings = await getUserSettings();
-        console.log('Loaded settings from local storage:', settings);
+        console.log("Loaded settings from local storage:", settings);
         setUserSettings(settings);
       } catch (error) {
-        console.error('Error loading settings:', error);
+        console.error("Error loading settings:", error);
       }
     };
 
@@ -197,31 +191,31 @@ export default function Index() {
     try {
       if (value !== 0) {
         // Use cloud storage via useUserStore
-        await addWaterIntakeToCloud(value, 'manual');
-        console.log('Successfully updated water intake:', value);
+        await addWaterIntakeToCloud(value, "manual");
+        console.log("Successfully updated water intake:", value);
       }
     } catch (error) {
-      console.error('Error updating water intake:', error);
+      console.error("Error updating water intake:", error);
       // Show user-friendly error message
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    
+
     // Refresh from cloud
     await refreshWaterIntake();
-    
+
     // Trigger offline sync if there are pending items
     if (pendingSyncCount > 0) {
       try {
         await syncOfflineData();
-        console.log('Synced offline data during refresh');
+        console.log("Synced offline data during refresh");
       } catch (error) {
-        console.error('Error syncing offline data:', error);
+        console.error("Error syncing offline data:", error);
       }
     }
-    
+
     // Reload user settings
     try {
       const settings = await getUserSettings();
@@ -229,7 +223,7 @@ export default function Index() {
     } catch (error) {
       console.error("Error loading settings:", error);
     }
-    
+
     setRefreshing(false);
   };
 
