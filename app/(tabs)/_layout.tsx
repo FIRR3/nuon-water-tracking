@@ -3,10 +3,15 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { TabBar } from "@/components/TabBar";
 import { useSyncManager } from "@/hooks/useSyncManager";
 import { useUserStore } from "@/hooks/useUserStore";
+import {
+  hasShownNotificationPrompt,
+  markNotificationPromptShown,
+  setNotificationsEnabled,
+} from "@/services/notifications";
 import { scheduleMidnightCheck } from "@/utils/dailySummaryMaintenance";
 import { Tabs } from "expo-router";
 import React, { useEffect } from "react";
-import { View } from "react-native";
+import { Alert, View } from "react-native";
 
 const _TabLayout = () => {
   const { authUser, healthProfile, recommendedIntake } = useUserStore();
@@ -27,6 +32,50 @@ const _TabLayout = () => {
     
     return cleanup;
   }, [authUser, healthProfile, recommendedIntake]);
+  
+  // Check if we should show the first-login notification prompt
+  useEffect(() => {
+    const checkNotificationPrompt = async () => {
+      const hasShown = await hasShownNotificationPrompt();
+      if (!hasShown) {
+        // Small delay to let the app finish loading
+        setTimeout(() => {
+          Alert.alert(
+            "Stay Hydrated",
+            "Would you like to receive daily reminders to drink water?\n\n" +
+              "You'll get notifications at:\n" +
+              "• 11:00 AM\n" +
+              "• 5:00 PM",
+            [
+              {
+                text: "Not Now",
+                style: "cancel",
+                onPress: async () => {
+                  await markNotificationPromptShown();
+                },
+              },
+              {
+                text: "Enable",
+                onPress: async () => {
+                  await markNotificationPromptShown();
+                  const success = await setNotificationsEnabled(true);
+                  if (success) {
+                    Alert.alert(
+                      "Reminders Enabled",
+                      "You'll receive daily reminders at 11 AM and 5 PM.",
+                      [{ text: "Great" }],
+                    );
+                  }
+                },
+              },
+            ],
+          );
+        }, 1000);
+      }
+    };
+
+    checkNotificationPrompt();
+  }, []);
   
   return (
     <View style={{ flex: 1 }}>
