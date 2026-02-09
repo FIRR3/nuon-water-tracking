@@ -7,17 +7,15 @@ import {
   Path,
   Rect,
   Skia,
-  SkPath,
   Text,
   useFont,
   vec
 } from "@shopify/react-native-skia";
-import { area, scaleLinear } from "d3";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   configureReanimatedLogger,
-  ReanimatedLogLevel,
   Easing,
+  ReanimatedLogLevel,
   useDerivedValue,
   useSharedValue,
   withRepeat,
@@ -55,19 +53,47 @@ export const getDropletPosition = (width: number, height: number) => {
   };
 };
 
+/**
+ * Helper: build the SVG path string for a wave clip at a given fill fraction and phase.
+ * This is a pure function so it can be called from within useDerivedValue on the UI thread.
+ */
+function buildWaveClipSvg(
+  fillFraction: number,
+  phase: number,
+  waveClipCount: number,
+  waveClipWidth: number,
+  waveHeightMax: number,
+  rectHeight: number,
+  atEdge: boolean,
+) {
+  'worklet';
+  const resolution = 40 * waveClipCount;
+  const waveH = atEdge ? 0 : waveHeightMax;
+
+  let path = "";
+  for (let i = 0; i <= resolution; i++) {
+    const xNorm = i / resolution;
+    const x = xNorm * waveClipWidth;
+    const sin = Math.sin((i / 40) * 2 * Math.PI + phase);
+    const y = rectHeight * (1 - fillFraction) + (sin * waveH);
+    path += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
+  }
+  // close down to bottom-right, bottom-left, back to start
+  path += ` L ${waveClipWidth} ${rectHeight + waveH}`;
+  path += ` L 0 ${rectHeight + waveH}`;
+  path += " Z";
+  return path;
+}
+
 export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, onDropletPress }: Props) => {
   const colors = useThemeColors();
 
   // Rectangle dimensions
-  // Width and Height come as props
-  // const borderThickness = 0;  --optional
-  const fillRectMargin = 0;   // --set to borderThickness
+  const fillRectMargin = 0;
   const fillRectWidth = width - fillRectMargin * 2;
   const fillRectHeight = height - fillRectMargin * 2;
 
   const minValue = 0;
-  
-  const fillPercent = Math.max(minValue, Math.min(maxValue, value)) / maxValue;
 
   // Fonts
   const xlFontSize = FONT_SIZES.xl;
@@ -84,209 +110,173 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
   const mdFont = useFont(
     require("@/assets/fonts/Poppins/Poppins-Regular.ttf"),
     mdFontSize
-  )
+  );
   const smFontSize = FONT_SIZES.sm;
   const smFont = useFont(
     require("@/assets/fonts/Poppins/Poppins-Regular.ttf"),
     smFontSize
   );
-
+  const boldmdFont = useFont(
+    require("@/assets/fonts/Poppins/Poppins-Bold.ttf"),
+    mdFontSize
+  );
 
   // Central SVG droplet button logic
   const { size: dropletSize, centerX: dropletCenterX, centerY: dropletCenterY } = getDropletPosition(width, height);
   // Feather droplet SVG path (36x36 viewBox)
   const dropletSvgPath =
     "M 18.00,4.04 C 18.00,4.04 26.49,12.52 26.49,12.52 28.66,14.70 30.01,17.70 30.01,21.01 30.01,27.64 24.63,33.01 18.01,33.01 11.38,33.01 6.01,27.64 6.01,21.01 6.01,17.70 7.35,14.70 9.52,12.53 9.52,12.53 18.00,4.04 18.00,4.04 Z";
-  const dropletPathRaw = Skia.Path.MakeFromSVGString(dropletSvgPath);
-  // Center and scale droplet for 36x36 viewBox
-  let dropletPath = null;
-  if (dropletPathRaw) {
-    const dropletTransform = Skia.Matrix();
-    dropletTransform.translate(dropletCenterX - dropletSize / 2, dropletCenterY - dropletSize / 2);
-    dropletTransform.scale(dropletSize / 36, dropletSize / 36); // SVG viewBox is 36x36
-    dropletPathRaw.transform(dropletTransform);
-    dropletPath = dropletPathRaw;
-  }
+  const dropletPath = useMemo(() => {
+    const raw = Skia.Path.MakeFromSVGString(dropletSvgPath);
+    if (!raw) return null;
+    const m = Skia.Matrix();
+    m.translate(dropletCenterX - dropletSize / 2, dropletCenterY - dropletSize / 2);
+    m.scale(dropletSize / 36, dropletSize / 36);
+    raw.transform(m);
+    return raw;
+  }, [dropletCenterX, dropletCenterY, dropletSize]);
 
-
-  // Dynamic color: inside wave = background, outside = primary
-  const dropletIsInWave = fillPercent > 0.5; // Covered if more than half full
-  const dropletColor = dropletIsInWave ? colors.background : colors.primary;
-
-  // Wave parameters
+  // Wave parameters (static geometry)
   const waveCount = 1;
   const waveClipCount = waveCount + 1;
   const waveLength = fillRectWidth / waveCount;
   const waveClipWidth = waveLength * waveClipCount;
-  const waveHeight = (value >= maxValue || value == minValue) ? 0 : fillRectHeight * 0.03; // flatten out wave at top height
+  const waveHeightMax = fillRectHeight * 0.03;
 
   // Dynamic greeting text position and font
   const greetingText = "Hello  ";
   const greetingName = userName;
   const greetingExcl = " !";
   const greetingTextWidth = mdFont?.getTextWidth(greetingText) ?? 0;
-  // Username in bold, but at smFontSize
-  const boldmdFont = useFont(
-    require("@/assets/fonts/Poppins/Poppins-Bold.ttf"),
-    mdFontSize
-  );
   const greetingNameWidth = boldmdFont?.getTextWidth(greetingName) ?? 0;
   const greetingX = 25;
   const greetingY = 120;
 
-  // Value text and 'ml' text width
-  const valueText = `${Math.round(value)}`;
   const mlText = "ml";
-
-  const valueTextWidth = xlFont?.getTextWidth(valueText) ?? 0;
   const mlTextWidth = mlTextFont?.getTextWidth(mlText) ?? 0;
-
-  const totalTextWidth = valueTextWidth + mlTextWidth + xlFontSize * 0.1; // spacing
-  const textTranslateX = width / 2 - totalTextWidth / 2;
   const textTranslateY = height / 4;
   const textTransform = [{ translateY: textTranslateY }];
-
-  // x ml remaining text
-  const waterRemainingText = value < maxValue ? `Remaining: ${Math.round(maxValue - value)}ml` : "Goal achieved!";
-  const waterRemainingTextWidth = smFont?.getTextWidth(waterRemainingText) ?? 0;
-  const waterRemainingTranslateX = width / 2 - waterRemainingTextWidth / 2;
   const waterRemainingTranslateY = textTranslateY + xlFontSize * 0.4;
   const waterRemainingTransform = [{ translateY: waterRemainingTranslateY }];
 
-  // Data for building the clip wave area for rectangle
-  const data: Array<[number, number]> = [];
-  for (let i = 0; i <= 40 * waveClipCount; i++) {
-    data.push([i / (40 * waveClipCount), i / 40]);
-  }
-
-  const waveScaleX = scaleLinear().range([0, waveClipWidth]).domain([0, 1]);
-  const waveScaleY = scaleLinear().range([0, waveHeight]).domain([0, 1]);
-
-  // Animation phase for seamless wave
+  // ── Animated shared values ──────────────────────────────────────
+  // Wave phase (continuous loop)
   const wavePhase = useSharedValue(0);
-
   useEffect(() => {
     wavePhase.value = withRepeat(
-      withTiming(1, {
-        duration: 9000,
-        easing: Easing.linear,
-      }),
+      withTiming(1, { duration: 9000, easing: Easing.linear }),
       -1
     );
   }, []);
 
-  // Animated fill height for gradient and wave
-  const waveFillHeightAnimated = useDerivedValue(() => {
-    return fillRectHeight * fillPercent;
-  }, [fillPercent, fillRectHeight]);
-
-  // area for rectangle, uses phase for seamless animation
-  const clipArea = area()
-    .x(function (d: [number, number]) {
-      return waveScaleX(d[0]);
-    })
-    .y0(function (d: [number, number]) {
-      // Use phase for seamless animation
-      const phase = (wavePhase.value % 1) * 2 * Math.PI;
-      return (
-        fillRectHeight * (1 - fillPercent) +
-        waveScaleY(Math.sin(d[1] * 2 * Math.PI + phase))
-      );
-    })
-    .y1(function (_d: [number, number]) {
-      return fillRectHeight + waveHeight;
-    });
-
-  const clipSvgPath = clipArea(data);
-
-  const translateXAnimated = useSharedValue(0);
-  const translateYPercent = useSharedValue(fillPercent);
-  const textValue = useSharedValue(value);
-
+  // Animated fill percent (smoothly transitions when value/maxValue change)
+  const animatedFillPercent = useSharedValue(
+    Math.max(minValue, Math.min(maxValue, value)) / maxValue
+  );
   useEffect(() => {
-    textValue.value = withTiming(value, {
-      duration: 1000,
-    });
+    const target = Math.max(minValue, Math.min(maxValue, value)) / maxValue;
+    animatedFillPercent.value = withTiming(target, { duration: 2000 });
+  }, [value, maxValue]);
+
+  // Animated text value (counts up/down)
+  const textValue = useSharedValue(value);
+  useEffect(() => {
+    textValue.value = withTiming(value, { duration: 1000 });
   }, [value]);
 
+  // Derived: displayed text string
   const text = useDerivedValue(() => {
     return `${textValue.value.toFixed(0)}`;
   }, [textValue]);
 
-  useEffect(() => {
-    translateYPercent.value = withTiming(fillPercent, {
-      duration: 5000,
-    });
-  }, [fillPercent]);
+  // Derived: "Remaining" text
+  const waterRemainingText = useDerivedValue(() => {
+    const remaining = maxValue - textValue.value;
+    if (remaining <= 0) return "Goal achieved!";
+    return `Remaining: ${Math.round(remaining)}ml`;
+  }, [textValue, maxValue]);
 
+  // Derived: x-position of the value text (keeps it centred as digits change)
+  const textTranslateX = useDerivedValue(() => {
+    if (!xlFont || !mlTextFont) return width / 2;
+    const valWidth = xlFont.getTextWidth(text.value);
+    const total = valWidth + mlTextWidth + xlFontSize * 0.1;
+    return width / 2 - total / 2;
+  }, [text, xlFont, mlTextFont, width, mlTextWidth, xlFontSize]);
 
+  // Derived: x-position for "ml" label (sits right of value text)
+  const mlTextX = useDerivedValue(() => {
+    if (!xlFont) return 0;
+    const valWidth = xlFont.getTextWidth(text.value);
+    return textTranslateX.value + valWidth + mlTextFontSize * 0.1;
+  }, [text, textTranslateX, xlFont, mlTextFontSize]);
 
-  // Gradient follows the wave crest
-  const gradientStartY = fillRectHeight;
-  const gradientEndY = Math.min(fillRectHeight, fillRectHeight * (1 - fillPercent) + waveHeight);
+  // Derived: x-position for remaining text (centred)
+  const waterRemainingTranslateX = useDerivedValue(() => {
+    if (!smFont) return width / 2;
+    const w = smFont.getTextWidth(waterRemainingText.value);
+    return width / 2 - w / 2;
+  }, [waterRemainingText, smFont, width]);
 
+  // ── Animated clip path (wave + fill height) ─────────────────────
   const clipPath = useDerivedValue(() => {
-    const clipP: SkPath | null = Skia.Path.MakeFromSVGString(clipSvgPath);
-    if (!clipP) return undefined;
-    const transformMatrix = Skia.Matrix();
-    transformMatrix.translate(
-      fillRectMargin - waveLength * wavePhase.value,
-      fillRectMargin
+    const frac = animatedFillPercent.value;
+    const atEdge = frac <= 0 || frac >= 1;
+    const phase = (wavePhase.value % 1) * 2 * Math.PI;
+    const svgStr = buildWaveClipSvg(
+      frac,
+      phase,
+      waveClipCount,
+      waveClipWidth,
+      waveHeightMax,
+      fillRectHeight,
+      atEdge,
     );
-    clipP.transform(transformMatrix);
-    return clipP;
-  }, [wavePhase, waveFillHeightAnimated]);
-
-  // Helper: check if point is inside droplet bounds
-  function isPointInDroplet(x: number, y: number) {
-    return (
-      x >= dropletCenterX - dropletSize / 2 &&
-      x <= dropletCenterX + dropletSize / 2 &&
-      y >= dropletCenterY - dropletSize / 2 &&
-      y <= dropletCenterY + dropletSize / 2
-    );
-  }
+    const p = Skia.Path.MakeFromSVGString(svgStr);
+    if (!p) return undefined;
+    const m = Skia.Matrix();
+    m.translate(fillRectMargin - waveLength * wavePhase.value, fillRectMargin);
+    p.transform(m);
+    return p;
+  }, [wavePhase, animatedFillPercent]);
 
   // Plus icon SVG path (centered in droplet, visually pixel-perfect)
   const plusSize = dropletSize * 0.2;
-  // Further adjust center for pixel-perfect centering
-  const plusCenterX = width/2 - plusSize/2;
+  const plusCenterX = width / 2 - plusSize / 2;
   const plusCenterY = dropletCenterY - plusSize * 0.9;
   const plusSvgPath =
     "M 18 17.5 a 1.2 1.2 0 0 1 1.2 1.2 v 2.8 h 2.8 a 1.2 1.2 0 0 1 0 2.4 h -2.8 v 2.8 a 1.2 1.2 0 0 1 -2.4 0 v -2.8 h -2.8 a 1.2 1.2 0 0 1 0 -2.4 h 2.8 v -2.8 a 1.2 1.2 0 0 1 1.2 -1.2 Z";
-  const plusPathRaw = Skia.Path.MakeFromSVGString(plusSvgPath);
-  let plusPath = null;
-  if (plusPathRaw) {
-    const plusTransform = Skia.Matrix();
-    plusTransform.translate(plusCenterX - plusSize, plusCenterY - plusSize / 2);
-    plusTransform.scale(plusSize / 12, plusSize / 12); // SVG viewBox is roughly 12x12
-    plusPathRaw.transform(plusTransform);
-    plusPath = plusPathRaw;
-  }
+  const plusPath = useMemo(() => {
+    const raw = Skia.Path.MakeFromSVGString(plusSvgPath);
+    if (!raw) return null;
+    const m = Skia.Matrix();
+    m.translate(plusCenterX - plusSize, plusCenterY - plusSize / 2);
+    m.scale(plusSize / 12, plusSize / 12);
+    raw.transform(m);
+    return raw;
+  }, [plusCenterX, plusCenterY, plusSize]);
 
+  // Gradient Y positions (static – the clip path handles the animation)
+  const gradientStartY = fillRectHeight;
+  const gradientEndY = 0; // full height gradient, clipped by wave
 
-  // Reusable component for dynamic color masking with wave
-  const WaveMasked = ({ path, aboveColor, belowColor, clipPath }: {
+  // ── Sub-components ──────────────────────────────────────────────
+  const WaveMasked = React.memo(({ path, aboveColor, belowColor, clipPath }: {
     path: any;
     aboveColor: string;
     belowColor: string;
     clipPath: any;
   }) => {
-    // Avoid reading .value during render
-    const clip = React.useMemo(() => {
-      return clipPath?.value ? clipPath : undefined;
-    }, [clipPath]);
     return (
       <>
         <Path path={path} color={aboveColor} />
-        <Group clip={clip}>
+        <Group clip={clipPath}>
           <Path path={path} color={belowColor} />
         </Group>
       </>
     );
-  };
+  });
 
-  // Text and greeting component - split into parts that need masking
   function GaugeGreeting({
     greetingX,
     greetingY,
@@ -326,14 +316,11 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
     );
   }
 
-  // Text and greeting component
   function GaugeText({
     textTranslateX,
     xlFontSize,
     text,
-    font,
-    valueTextWidth,
-    mlTextFontSize,
+    mlTextX,
     mlText,
     mlTextFont,
     textTransform,
@@ -356,7 +343,7 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
           transform={textTransform}
         />
         <Text
-          x={textTranslateX + valueTextWidth + mlTextFontSize * 0.1}
+          x={mlTextX}
           y={xlFontSize}
           text={mlText}
           font={mlTextFont}
@@ -376,7 +363,6 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
     );
   }
 
-  // Droplet and plus icon component
   function GaugeDroplet({
     dropletPath,
     colors,
@@ -401,6 +387,11 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
     );
   }
 
+  // Don't render until all fonts are loaded to prevent invisible text
+  if (!xlFont || !mlTextFont || !mdFont || !smFont || !boldmdFont) {
+    return null;
+  }
+
   return (
     <Canvas style={{ width, height }}>
       {/* Text and greeting above wave */}
@@ -421,8 +412,7 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
           textTranslateX={textTranslateX}
           xlFontSize={xlFontSize}
           text={text}
-          valueTextWidth={valueTextWidth}
-          mlTextFontSize={mlTextFontSize}
+          mlTextX={mlTextX}
           mlText={mlText}
           mlTextFont={mlTextFont}
           textTransform={textTransform}
@@ -443,8 +433,8 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
           height={fillRectHeight}
         >
           <LinearGradient
-            start={vec(0, Math.max(0, gradientStartY))}
-            end={vec(0, Math.min(fillRectHeight, gradientEndY))}
+            start={vec(0, gradientStartY)}
+            end={vec(0, gradientEndY)}
             colors={["hsl(208, 92%, 62%)", "hsl(221, 91%, 58%)"]}
           />
         </Rect>
@@ -464,8 +454,7 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
           textTranslateX={textTranslateX}
           xlFontSize={xlFontSize}
           text={text}
-          valueTextWidth={valueTextWidth}
-          mlTextFontSize={mlTextFontSize}
+          mlTextX={mlTextX}
           mlText={mlText}
           mlTextFont={mlTextFont}
           textTransform={textTransform}

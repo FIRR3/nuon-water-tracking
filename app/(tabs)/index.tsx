@@ -288,7 +288,6 @@ export default function Index() {
         </Modal>
 
         <LiquidProgressGauge
-          key={`gauge-${currentWaterIntake}`}
           width={windowWidth}
           height={windowHeight}
           value={currentWaterIntake || 0}

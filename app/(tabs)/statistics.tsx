@@ -119,31 +119,7 @@ const Statistics = () => {
             }}
           />
         ),
-        dataPointLabelComponent: () => (
-          <View
-            style={{
-              backgroundColor: "black",
-              paddingHorizontal: scale(12),
-              paddingVertical: scale(6),
-              borderRadius: scale(6),
-            }}
-          >
-            <Text
-              style={{
-                color: "white",
-                fontSize: scale(13),
-                width: scale(60),
-                fontWeight: "bold",
-                textAlign: "center",
-              }}
-              numberOfLines={1}
-            >
-              {(point.value / 1000).toFixed(1)}L
-            </Text>
-          </View>
-        ),
-        dataPointLabelShiftY: scale(-10),
-        dataPointLabelShiftX: scale(-30),
+        
       }),
     };
   });
@@ -379,8 +355,8 @@ const Statistics = () => {
               endSpacing={scale(8)}
               yAxisColor="lightgray"
               xAxisColor="lightgray"
-              dataPointsHeight={scale(8)}
-              dataPointsWidth={scale(8)}
+              dataPointsHeight={scale(12)}
+              dataPointsWidth={scale(12)}
               dataPointsColor={constantColors.accent}
             />
           </View>
