@@ -5,14 +5,13 @@ import ToggleButton from "@/components/ToggleButton";
 import { AppIcons } from "@/constants/icon";
 import { useNetworkState } from "@/hooks/useNetworkState";
 import { useUserStore } from "@/hooks/useUserStore";
-import { TouchableOpacity, View } from "react-native";
 import {
   getNotificationSettings,
   setNotificationsEnabled,
 } from "@/services/notifications";
 import * as Notifications from "expo-notifications";
 import React, { useEffect, useState } from "react";
-import { Alert, ScrollView, Text } from "react-native";
+import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import { calculateAge } from "../../utils/calulateAge";
 

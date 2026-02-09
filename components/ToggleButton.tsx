@@ -12,7 +12,7 @@ const ToggleButton = ({ isToggled, onPress }: Props) => {
 
   return (
     <Pressable
-      onPress={() => {onPress}}
+      onPress={onPress}
       style={{ 
         display: 'flex',
         alignItems: 'flex-end', 
