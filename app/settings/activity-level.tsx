@@ -14,15 +14,20 @@ const ActivityLevel = () => {
     useState<string>(activityLevel);
 
   useEffect(() => {
-    const updateLifestyle = async () => {
-      try {
-        updateHealthProfile({ activityLevel: selectedLifestyle });
-      } catch (error) {
-        console.log("Error updating activity level");
-      }
-    };
+    // Only update if the selection has changed
+    if (selectedLifestyle && selectedLifestyle !== activityLevel) {
+      const updateLifestyle = async () => {
+        try {
+          // This now saves locally first and syncs to cloud automatically
+          await updateHealthProfile({ activityLevel: selectedLifestyle });
+          console.log('Activity level updated:', selectedLifestyle);
+        } catch (error) {
+          console.error('Error updating activity level:', error);
+        }
+      };
 
-    updateLifestyle();
+      updateLifestyle();
+    }
   }, [selectedLifestyle]);
 
   const lifestyleOptions = [

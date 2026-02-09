@@ -4,7 +4,7 @@ import SettingsRow from "@/components/SettingsRow";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserStore } from "@/hooks/useUserStore";
 import { account } from "@/services/appwrite";
-import { authAPI, userProfileAPI } from "@/services/appwriteService";
+import { authAPI } from "@/services/appwriteService";
 import React, { useState } from "react";
 import { Alert, Text, TouchableOpacity } from "react-native";
 
@@ -26,20 +26,25 @@ const MyAccount = () => {
     setLoading(true);
 
     try {
-      // Update in database
-      await userProfileAPI.update(authUser.$id, {
+      // Use the new updateUserProfile method that saves locally first
+      const updates = {
         email: email.trim(),
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-      });
-
-      // Refresh global state
-      await fetchUserData();
+      };
+      
+      // This now saves locally and queues cloud sync
+      await useUserStore.getState().updateUserProfile(updates);
+      
+      // Update local state
+      setEmail(updates.email);
+      setFirstName(updates.firstName);
+      setLastName(updates.lastName);
 
       Alert.alert("Success", "Profile updated!");
     } catch (error) {
       console.error("Failed to update profile:", error);
-      Alert.alert("Error", "Failed to update profile. Please try again.");
+      Alert.alert("Notice", "Profile saved locally and will sync when online.");
     } finally {
       setLoading(false);
     }

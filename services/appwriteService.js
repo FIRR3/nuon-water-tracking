@@ -1,5 +1,6 @@
 import { ID, Query } from "appwrite";
 import { account, databases } from "./appwrite"; // Your Appwrite config
+import { dailySummariesAPI } from "./dailySummariesAPI";
 
 const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID;
 
@@ -219,3 +220,7 @@ export const authAPI = {
     return await account.deleteIdentity(userId);
   },
 };
+
+// Export daily summaries API
+export { dailySummariesAPI };
+

@@ -35,7 +35,7 @@ type BarDataItem = {
 // }
 
 const Statistics = () => {
-  const { userHealthProfile, recommendedIntake } = useUserStore();
+  const { healthProfile, recommendedIntake } = useUserStore();
   const {
     hourlyData: rawHourlyData,
     weeklyData: rawWeeklyData,
@@ -49,7 +49,7 @@ const Statistics = () => {
 
   const [refreshing, setRefreshing] = React.useState(false);
 
-  const waterGoal = userHealthProfile?.customWaterGoal || recommendedIntake || 2400;
+  const waterGoal = healthProfile?.customWaterGoal || recommendedIntake || 2400;
   const currentHour = new Date().getHours();
 
   // Calculate adaptive maxValue for weekly chart (baseline: waterGoal, add 20% padding)
@@ -134,7 +134,7 @@ const Statistics = () => {
                 fontSize: scale(13),
                 width: scale(60),
                 fontWeight: "bold",
-                textAlign: "center"
+                textAlign: "center",
               }}
               numberOfLines={1}
             >

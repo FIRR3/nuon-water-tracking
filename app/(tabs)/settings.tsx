@@ -3,10 +3,10 @@ import Section from "@/components/Section";
 import SettingsRow from "@/components/SettingsRow";
 import ToggleButton from "@/components/ToggleButton";
 import { AppIcons } from "@/constants/icon";
+import { useNetworkState } from "@/hooks/useNetworkState";
 import { useUserStore } from "@/hooks/useUserStore";
-import { requestNotificationPermissions } from "@/services/notifications";
 import React, { useState } from "react";
-import { ScrollView, Text } from "react-native";
+import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import { calculateAge } from "../../utils/calulateAge";
 
@@ -15,7 +15,16 @@ export function capitalizeFirstLetter(val: string) {
 }
 
 const Settings = () => {
-  const { userProfile, healthProfile, recommendedIntake } = useUserStore();
+  const { 
+    userProfile, 
+    healthProfile, 
+    recommendedIntake, 
+    pendingSyncCount, 
+    pendingEditsCount,
+    syncAllOfflineData,
+  } = useUserStore();
+  
+  const { isOnline } = useNetworkState();
 
   const [customGoal, setCustomGoal] = useState(
     healthProfile?.customWaterGoal?.toString() || null,
@@ -23,12 +32,38 @@ const Settings = () => {
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  let userName = `${userProfile?.firstName} ${userProfile?.lastName}`;
-  let age = calculateAge(userProfile?.birthday);
-  let currentWeight = healthProfile?.weight;
+  let userName = userProfile?.firstName && userProfile?.lastName 
+    ? `${userProfile.firstName} ${userProfile.lastName}` 
+    : 'User';
+  let age = userProfile?.birthday ? calculateAge(userProfile.birthday) : 0;
+  let currentWeight = healthProfile?.weight || 0;
   let waterGoal = customGoal ? customGoal : recommendedIntake;
-  let activityLevel = healthProfile?.activityLevel;
+  let activityLevel = healthProfile?.activityLevel || 'Moderate';
+  
+  const totalPending = pendingSyncCount + pendingEditsCount;
+  
+  const handleManualSync = async () => {
+    if (!isOnline) {
+      Alert.alert('Offline', 'Please connect to the internet to sync your data.');
+      return;
+    }
+    
+    setIsSyncing(true);
+    try {
+      const result = await syncAllOfflineData();
+      if (result.synced > 0) {
+        Alert.alert('Success', `Synced ${result.synced} items successfully!`);
+      } else {
+        Alert.alert('Info', 'All data is already synced.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to sync data. Please try again.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   return (
     <ScreenBackgroundWrapper>
@@ -157,6 +192,36 @@ const Settings = () => {
             </Text>
           </SettingsRow>
         </Section>
+        
+        {/* Sync Status Section */}
+        {totalPending > 0 && (
+          <Section rounded title="Sync Status">
+            <View className="p-4">
+              <Text className="text-white text-sm font-poppins mb-2">
+                {totalPending} item{totalPending !== 1 ? 's' : ''} pending sync
+              </Text>
+              {pendingSyncCount > 0 && (
+                <Text className="text-white/70 text-xs font-poppins">
+                  • {pendingSyncCount} water intake log{pendingSyncCount !== 1 ? 's' : ''}
+                </Text>
+              )}
+              {pendingEditsCount > 0 && (
+                <Text className="text-white/70 text-xs font-poppins mb-3">
+                  • {pendingEditsCount} profile edit{pendingEditsCount !== 1 ? 's' : ''}
+                </Text>
+              )}
+              <TouchableOpacity
+                onPress={handleManualSync}
+                disabled={isSyncing || !isOnline}
+                className={`bg-dark-accent py-3 rounded-lg ${(isSyncing || !isOnline) ? 'opacity-50' : ''}`}
+              >
+                <Text className="text-white text-center font-poppins-medium">
+                  {isSyncing ? 'Syncing...' : 'Sync Now'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Section>
+        )}
       </ScrollView>
     </ScreenBackgroundWrapper>
   );

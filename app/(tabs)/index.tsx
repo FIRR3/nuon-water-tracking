@@ -8,11 +8,8 @@ import WeightScreen from "@/components/weight_tester";
 import { constantColors } from "@/constants/colors";
 import { UIIcons } from "@/constants/icon";
 import {
-  addWaterEntry,
-  getTodayWaterIntake,
   getUserSettings,
-  removeWaterAmount,
-  UserSettings,
+  UserSettings
 } from "@/services/storage";
 import {
   calculateProgress,
@@ -135,25 +132,29 @@ export default function Index() {
   const progress = calculateProgress(totalToday, recommendedIntake);
   const explanation = getIntakeExplanation(recommendedIntake);
 
-  const [userName, setUserName] = useState("");
-  const [currentWaterIntake, setCurrentWaterIntake] = useState(0);
+  const [userName, setUserName] = useState(userProfile?.firstName || "there");
+  const [currentWaterIntake, setCurrentWaterIntake] = useState(totalToday || 0);
   const [bleStatus, setBleStatus] = useState('Initializing...');
   const [userSettings, setUserSettings] = useState<UserSettings>({
-    recommendedWaterIntake: waterGoal,
+    customWaterGoal: waterGoal,
     unit: "ml",
   });
   
   // Use cloud value from store as primary, fallback to local settings
-  let recommendedWaterIntake = recommendedIntake || userSettings.recommendedWaterIntake || 2400;
+  let recommendedWaterIntake = recommendedIntake || userSettings.customWaterGoal || 2400;
   
 
   useEffect(() => {
-    userProfile?.firstName && setUserName(userProfile?.firstName);
+    // Set userName with fallback to "there" if firstName is not available
+    const name = userProfile?.firstName || "there";
+    console.log('👤 Setting userName:', name, 'from userProfile:', userProfile);
+    setUserName(name);
   }, [userProfile]);
 
   // Sync currentWaterIntake with totalToday from store
   useEffect(() => {
-    setCurrentWaterIntake(totalToday);
+    console.log('💧 Updating currentWaterIntake:', totalToday);
+    setCurrentWaterIntake(totalToday || 0);
   }, [totalToday]);
 
   const router = useRouter();
@@ -194,15 +195,16 @@ export default function Index() {
   );
 
   const updateWaterIntake = async (value: number) => {
+    console.log('🔄 updateWaterIntake called with value:', value);
     try {
       if (value !== 0) {
         // Use cloud storage via useUserStore
-        await addWaterIntakeToCloud(value, 'manual');
-        console.log('Successfully updated water intake:', value);
+        const result = await addWaterIntakeToCloud(value, 'manual');
+        console.log('✅ Successfully updated water intake:', value, 'result:', result);
       }
     } catch (error) {
-      console.error('Error updating water intake:', error);
-      // Show user-friendly error message
+      console.error('❌ Error updating water intake:', error);
+      // Entry was still saved locally, so don't show error to user
     }
   };
 
@@ -289,9 +291,9 @@ export default function Index() {
           key={`gauge-${currentWaterIntake}`}
           width={windowWidth}
           height={windowHeight}
-          value={currentWaterIntake}
-          maxValue={waterGoal}
-          userName={userName}
+          value={currentWaterIntake || 0}
+          maxValue={waterGoal || 2400}
+          userName={userName || "there"}
         />
       </ScrollView>
       <WeightScreen

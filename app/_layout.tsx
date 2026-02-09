@@ -2,18 +2,24 @@ import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import {
-  account,
-  DATABASE_ID,
-  databases,
-  USERS_TABLE_ID,
+    account,
+    DATABASE_ID,
+    databases,
+    USERS_TABLE_ID,
 } from "@/services/appwrite";
-import { requestNotificationPermissions } from "@/services/notifications";
 import * as Font from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
-import { View } from "react-native";
+import { LogBox, View } from "react-native";
 import "./globals.css";
+
+// Suppress specific warnings about asset downloads when offline
+LogBox.ignoreLogs([
+  'ExpoAsset.downloadAsync',
+  'downloadAsync has been rejected',
+  'call the function \'ExpoAsset.downloadAsync\' has been rejected',
+]);
 
 const customFonts = {
   "Poppins-Regular": require("@/assets/fonts/Poppins/Poppins-Regular.ttf"),
@@ -40,6 +46,35 @@ export default function RootLayout() {
 
   useEffect(() => {
     // requestNotificationPermissions();
+  }, []);
+
+  // Set up global error handler for promise rejections
+  useEffect(() => {
+    // @ts-ignore - ErrorUtils is available in React Native
+    const originalHandler = global.ErrorUtils?.getGlobalHandler();
+    
+    // @ts-ignore
+    global.ErrorUtils?.setGlobalHandler((error, isFatal) => {
+      // Suppress ExpoAsset download errors (fonts are already cached)
+      if (error?.message?.includes('ExpoAsset.downloadAsync') || 
+          error?.message?.includes('downloadAsync')) {
+        console.log('Suppressed asset download error (offline mode)');
+        return;
+      }
+      
+      // Call original handler for other errors
+      if (originalHandler) {
+        originalHandler(error, isFatal);
+      }
+    });
+
+    return () => {
+      // Restore original handler on cleanup
+      // @ts-ignore
+      if (originalHandler) {
+        global.ErrorUtils?.setGlobalHandler(originalHandler);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -73,8 +108,11 @@ export default function RootLayout() {
       try {
         // Pre-load fonts
         await Font.loadAsync(customFonts);
+        console.log('Fonts loaded successfully');
       } catch (e) {
-        console.warn("Error in prepare:", e);
+        // Suppress font loading errors when offline - fonts may already be cached
+        console.log('Font loading skipped (may be offline or already cached)');
+        // Continue anyway - fonts are likely already loaded from previous sessions
       } finally {
         setAppIsReady(true);
       }

@@ -1,7 +1,8 @@
 import NetInfo from '@react-native-community/netinfo';
 import { useEffect, useState } from 'react';
-import { waterIntakeAPI } from '../services/appwriteService';
-import { getWaterHistory } from '../services/storage';
+import { dailySummariesAPI, waterIntakeAPI } from '../services/appwriteService';
+import { getDailySummariesRange, getWaterHistory } from '../services/storage';
+import { verifyAndFixDailySummary } from '../utils/dailySummaryMaintenance';
 import { useUserStore } from './useUserStore';
 
 export interface HourlyDataPoint {
@@ -87,6 +88,7 @@ export const useStatisticsData = (): StatisticsData => {
 
   /**
    * Fetch last 7 days of water intake data
+   * PRIORITY: Use daily summaries, fallback to individual logs if no summary exists
    */
   const fetchWeeklyData = async (): Promise<{ date: string; amount: number; timestamp: string }[]> => {
     if (!authUser?.$id) return [];
@@ -97,33 +99,126 @@ export const useStatisticsData = (): StatisticsData => {
     startDate.setHours(0, 0, 0, 0);
 
     try {
-      // Try online first
-      const logs = await waterIntakeAPI.getDateRange(authUser.$id, startDate, endDate);
-      console.log('Fetched weekly data from cloud:', logs.length, 'entries');
-      return logs.map(log => ({
-        date: new Date(log.timestamp).toISOString().split('T')[0],
-        amount: log.amount,
-        timestamp: log.timestamp,
-      }));
+      // Try to fetch daily summaries from cloud (MUCH faster!)
+      const summaries = await dailySummariesAPI.getDateRange(authUser.$id, startDate, endDate);
+      console.log('✅ Fetched', summaries.length, 'daily summaries from cloud');
+      
+      // Convert summaries to expected format
+      const result: { date: string; amount: number; timestamp: string }[] = [];
+      
+      // Create a map of dates with summaries
+      const summaryMap = new Map();
+      summaries.forEach(summary => {
+        // Convert UTC date to local date string
+        const summaryDate = new Date(summary.date);
+        const year = summaryDate.getFullYear();
+        const month = String(summaryDate.getMonth() + 1).padStart(2, '0');
+        const day = String(summaryDate.getDate()).padStart(2, '0');
+        const localDateStr = `${year}-${month}-${day}`;
+        summaryMap.set(localDateStr, summary);
+      });
+      
+      // For each day in the range
+      for (let i = 0; i < 7; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        // Use local date string
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        
+        // For midnight ISO string, create a UTC date from local date components
+        const localMidnight = new Date(year, date.getMonth(), date.getDate(), 0, 0, 0, 0);
+        const midnight = localMidnight.toISOString();
+        
+        if (summaryMap.has(dateStr)) {
+          // Have summary - verify it matches logs
+          const summary = summaryMap.get(dateStr);
+          
+          // Verify summary matches logs (asynchronously in background)
+          const currentGoal = userHealthProfile?.customWaterGoal || recommendedIntake || 2400;
+          verifyAndFixDailySummary(authUser.$id, midnight, currentGoal).catch(err => 
+            console.log('Could not verify summary:', err)
+          );
+          
+          result.push({
+            date: dateStr,
+            amount: summary.totalIntake,
+            timestamp: summary.lastDrink || summary.updatedAt,
+          });
+        } else {
+          // No summary - fetch individual logs as fallback
+          console.log('⚠️ No summary for', dateStr, '- fetching logs');
+          const logs = await waterIntakeAPI.getDateRange(authUser.$id, localMidnight, localMidnight);
+          const dailyTotal = logs.reduce((sum, log) => sum + log.amount, 0);
+          
+          if (dailyTotal > 0 || logs.length > 0) {
+            // Has logs - use them and create summary
+            result.push({
+              date: dateStr,
+              amount: dailyTotal,
+              timestamp: logs[0]?.timestamp || date.toISOString(),
+            });
+            
+            // Create summary for this day (asynchronously in background)
+            const currentGoal = userHealthProfile?.customWaterGoal || recommendedIntake || 2400;
+            verifyAndFixDailySummary(authUser.$id, midnight, currentGoal).catch(err =>
+              console.log('Could not create summary:', err)
+            );
+          }
+          // If no logs either, the day will show as 0 (not added to result)
+        }
+      }
+      
+      return result;
+      
     } catch (error) {
-      console.log('Could not fetch weekly data from cloud, using local storage');
+      console.log('Could not fetch from cloud, using local storage');
+      
       // Fallback to local storage
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      // Try to get summaries from cache first
+      const cachedSummaries = await getDailySummariesRange(authUser.$id, startDateStr, endDateStr);
+      
+      if (cachedSummaries.length > 0) {
+        console.log('✅ Using', cachedSummaries.length, 'cached summaries');
+        return cachedSummaries.map(summary => {
+          // Extract YYYY-MM-DD from datetime for display
+          const displayDate = new Date(summary.date).toISOString().split('T')[0];
+          return {
+            date: displayDate,
+            amount: summary.totalIntake,
+            timestamp: summary.lastDrink || summary.updatedAt,
+          };
+        });
+      }
+      
+      // Final fallback: local history
       const history = await getWaterHistory();
       const result: { date: string; amount: number; timestamp: string }[] = [];
 
       for (let i = 0; i < 7; i++) {
         const date = new Date();
         date.setDate(date.getDate() - (6 - i));
-        const dateStr = date.toISOString().split('T')[0];
+        // Use local date string
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
         const entries = history[dateStr] || [];
         
-        entries.forEach(entry => {
+        const dailyTotal = entries.reduce((sum, entry) => sum + entry.amount, 0);
+        
+        if (dailyTotal > 0 || entries.length > 0) {
           result.push({
             date: dateStr,
-            amount: entry.amount,
-            timestamp: new Date(entry.timestamp).toISOString(),
+            amount: dailyTotal,
+            timestamp: entries[0] ? new Date(entries[0].timestamp).toISOString() : date.toISOString(),
           });
-        });
+        }
       }
 
       return result;
@@ -185,7 +280,11 @@ export const useStatisticsData = (): StatisticsData => {
     for (let i = 0; i < 7; i++) {
       const date = new Date();
       date.setDate(date.getDate() - (6 - i));
-      const dateStr = date.toISOString().split('T')[0];
+      // Use local date string instead of UTC
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
       const dayOfWeek = date.getDay();
 
       // Sum all logs for this day
@@ -222,7 +321,11 @@ export const useStatisticsData = (): StatisticsData => {
     for (let i = 0; i < 365; i++) {
       const checkDate = new Date(today);
       checkDate.setDate(checkDate.getDate() - i);
-      const dateStr = checkDate.toISOString().split('T')[0];
+      // Use local date string instead of UTC
+      const year = checkDate.getFullYear();
+      const month = String(checkDate.getMonth() + 1).padStart(2, '0');
+      const day = String(checkDate.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
       const total = dailyTotals[dateStr] || 0;
 
       if (total >= waterGoal) {
@@ -234,7 +337,11 @@ export const useStatisticsData = (): StatisticsData => {
       // If today and didn't meet goal yet, continue checking previous days
     }
 
-    const todayStr = today.toISOString().split('T')[0];
+    // Use local date for today
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
     const todayTotal = dailyTotals[todayStr] || 0;
     const remaining = Math.max(0, waterGoal - todayTotal);
 

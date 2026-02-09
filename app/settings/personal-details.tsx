@@ -12,11 +12,11 @@ const PersonalDetails = () => {
     healthProfile?.customWaterGoal?.toString() || null,
   );
 
-  let currentWeight = healthProfile?.weight;
-  let height = healthProfile?.height;
-  let dateOfBirth = userProfile?.birthday?.split("T")[0];
-  let gender = healthProfile?.gender;
-  let activityLevel = healthProfile?.activityLevel;
+  let currentWeight = healthProfile?.weight || 0;
+  let height = healthProfile?.height || 0;
+  let dateOfBirth = userProfile?.birthday?.split("T")[0] || 'N/A';
+  let gender = healthProfile?.gender || 'N/A';
+  let activityLevel = healthProfile?.activityLevel || 'N/A';
 
   return (
     <ScreenBackgroundWrapper>

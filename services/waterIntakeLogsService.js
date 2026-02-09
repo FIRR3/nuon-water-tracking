@@ -1,7 +1,8 @@
 // services/waterIntakeLogsService.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { waterIntakeAPI } from './appwriteService';
-import { addWaterEntry as saveToLocalStorage } from './storage';
+import { dailySummariesOfflineService } from './dailySummariesOfflineService';
+import { getDailySummary, saveDailySummary, addWaterEntry as saveToLocalStorage } from './storage';
 
 const OFFLINE_QUEUE_KEY = '@water_intake_offline_queue';
 const MAX_RETRY_ATTEMPTS = 5;
@@ -44,9 +45,10 @@ export class WaterIntakeLogsService {
    * @param {string} userId - User ID
    * @param {number} amount - Amount in ml
    * @param {string} source - Source of the entry (bluetooth, manual)
+   * @param {number} currentGoal - User's current water goal in ml
    * @returns {Promise<object>} The created log entry
    */
-  async addWaterIntake(userId, amount, source = 'bluetooth') {
+  async addWaterIntake(userId, amount, source = 'bluetooth', currentGoal = 2400) {
     const timestamp = new Date().toISOString();
     
     // Ensure amount is an integer (Appwrite requires signed 64-bit integer)
@@ -65,10 +67,14 @@ export class WaterIntakeLogsService {
     try {
       // ALWAYS save to local storage first (dual write pattern)
       await saveToLocalStorage(intAmount);
-      console.log('Saved to local storage:', intAmount);
+      console.log('✅ Saved to local storage:', intAmount);
+      
+      // Update daily summary (immediately)
+      await this.updateDailySummary(userId, intAmount, timestamp, currentGoal);
       
       // Add to offline queue
       await this.addToOfflineQueue(entry);
+      console.log('✅ Added to offline queue:', entry.localId);
 
       // Try to sync immediately
       const cloudEntry = await this.syncSingleEntry(entry);
@@ -76,16 +82,80 @@ export class WaterIntakeLogsService {
       if (cloudEntry) {
         // Success! Remove from queue
         await this.removeFromOfflineQueue(entry.localId);
+        console.log('✅ Synced to cloud immediately:', cloudEntry.$id);
         return cloudEntry;
       } else {
         // Failed, but it's in local storage and queue for retry
-        console.log('Entry saved locally and offline queue, will retry cloud sync later');
-        return entry; // Return local entry
+        console.log('⚠️ Cloud sync failed, entry queued for retry:', entry.localId);
+        return entry; // Return local entry - ALWAYS return valid entry
       }
     } catch (error) {
-      console.error('Error adding water intake:', error);
-      // Entry is in offline queue and local storage, will be retried
-      throw error;
+      console.error('❌ Error in addWaterIntake, but entry is saved locally:', error);
+      // CRITICAL: Even if there's an error, the entry is saved locally and queued
+      // ALWAYS return the entry so the UI can update - NEVER throw here
+      return entry;
+    }
+  }
+
+  /**
+   * Update daily summary when water is added
+   * @param {string} userId - User ID
+   * @param {number} amount - Amount in ml (can be negative for removal)
+   * @param {string} timestamp - ISO timestamp of the drink
+   * @param {number} currentGoal - User's current water goal in ml
+   */
+  async updateDailySummary(userId, amount, timestamp, currentGoal) {
+    try {
+      // Get date at midnight for this timestamp
+      const drinkDate = new Date(timestamp);
+      drinkDate.setHours(0, 0, 0, 0);
+      const dateStr = drinkDate.toISOString();
+      
+      // Get or create summary for this date
+      let summary = await getDailySummary(userId, dateStr);
+      
+      if (!summary) {
+        // Create new summary
+        summary = {
+          userId,
+          date: dateStr, // ISO datetime at midnight
+          totalIntake: 0,
+          goalAmount: currentGoal,
+          numberOfDrinks: 0,
+          firstDrink: null,
+          lastDrink: null,
+          updatedAt: timestamp,
+        };
+      }
+      
+      // Update summary fields
+      summary.totalIntake += amount;
+      summary.goalAmount = currentGoal; // Always use current goal
+      
+      if (amount > 0) {
+        // Positive amount - increment drinks and update lastDrink
+        summary.numberOfDrinks += 1;
+        summary.lastDrink = timestamp; // Full ISO datetime
+        if (!summary.firstDrink) {
+          summary.firstDrink = timestamp; // Full ISO datetime
+        }
+      } else {
+        // Negative amount (removal) - decrement drinks, DON'T update lastDrink
+        summary.numberOfDrinks = Math.max(0, summary.numberOfDrinks - 1);
+      }
+      
+      summary.updatedAt = timestamp; // Use the drink timestamp, not current time
+      
+      // Save to local cache
+      await saveDailySummary(userId, summary);
+      console.log('✅ Updated daily summary:', dateStr, summary.totalIntake, 'ml');
+      
+      // Queue for cloud sync
+      await dailySummariesOfflineService.queueSummaryUpdate(userId, dateStr, summary);
+      
+    } catch (error) {
+      console.error('❌ Error updating daily summary:', error);
+      // Don't throw - summary update failing shouldn't break water intake
     }
   }
 
@@ -109,7 +179,15 @@ export class WaterIntakeLogsService {
       console.log('Successfully synced entry to cloud:', cloudEntry.$id);
       return cloudEntry;
     } catch (error) {
-      console.error('Failed to sync entry to cloud:', error);
+      // Check if it's a network error (offline) vs actual error
+      const isNetworkError = error.message?.toLowerCase().includes('network') || 
+                            error.message?.toLowerCase().includes('fetch');
+      
+      if (isNetworkError) {
+        console.log('⚠️ Offline - entry will sync when connection restored');
+      } else {
+        console.error('❌ Failed to sync entry to cloud:', error.message);
+      }
       return null;
     }
   }

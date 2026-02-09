@@ -40,10 +40,13 @@ const WaterSettings = () => {
           style: "destructive",
           onPress: async () => {
             try {
+              // This now saves locally first and syncs to cloud
               await updateHealthProfile({ customWaterGoal: null });
+              console.log('Water goal reset to default');
               // useEffect will sync the slider state after the update
             } catch (error) {
               console.error("Error resetting settings:", error);
+              Alert.alert("Error", "Failed to reset settings. Changes saved locally and will sync when online.");
             }
           },
         },
@@ -55,9 +58,13 @@ const WaterSettings = () => {
   const confirmWaterAmount = async () => {
     const newGoal = Math.round(sliderState * 1000);
     try {
+      // This now saves locally first and syncs to cloud
       await updateHealthProfile({ customWaterGoal: newGoal });
+      console.log('Water goal updated:', newGoal);
+      Alert.alert("Success", "Water goal updated!");
     } catch (error) {
       console.error("Error confirming water amount:", error);
+      Alert.alert("Notice", "Water goal saved locally and will sync when online.");
     }
   };
 
