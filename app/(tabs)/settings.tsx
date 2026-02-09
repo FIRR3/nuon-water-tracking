@@ -79,7 +79,11 @@ const Settings = () => {
       >
         <Section rounded className="mt-8 gap-[1px]">
           <SettingsRow showHR>
-            <Text className="text-white text-lg font-poppins-medium">
+            <Text 
+              numberOfLines={1}
+              className="text-white text-lg font-poppins-medium flex-1"
+              style={{ marginRight: scale(8) }}
+            >
               {userName}
             </Text>
             <Text className="text-white text-md font-poppins-semibold">

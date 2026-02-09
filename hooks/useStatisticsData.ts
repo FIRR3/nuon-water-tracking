@@ -33,6 +33,7 @@ export interface StatisticsData {
   weeklyData: WeeklyDataPoint[];
   streakData: StreakData;
   currentWaterIntake: number;
+  todayLogs: { amount: number; timestamp: string }[];
   isOnline: boolean;
   isLoading: boolean;
   error: string | null;
@@ -53,6 +54,7 @@ export const useStatisticsData = (): StatisticsData => {
     remainingToGoal: 0,
   });
   const [currentWaterIntake, setCurrentWaterIntake] = useState(0);
+  const [todayLogs, setTodayLogs] = useState<{ amount: number; timestamp: string }[]>([]);
   const [isOnline, setIsOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -393,6 +395,7 @@ export const useStatisticsData = (): StatisticsData => {
       setWeeklyData(processedWeeklyData);
       setStreakData(processedStreakData);
       setCurrentWaterIntake(currentIntake);
+      setTodayLogs(todayLogs);
     } catch (err) {
       console.error('Error fetching statistics data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load statistics');
@@ -428,6 +431,7 @@ export const useStatisticsData = (): StatisticsData => {
     weeklyData,
     streakData,
     currentWaterIntake,
+    todayLogs,
     isOnline,
     isLoading,
     error,

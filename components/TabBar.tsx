@@ -3,9 +3,9 @@ import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React, { useEffect, useState } from "react";
 import { LayoutChangeEvent, View } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
 } from "react-native-reanimated";
 import TabBarButton from "./TabBarButton";
 
@@ -17,16 +17,17 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   const buttonWidth = dimensions.width / state.routes.length;
 
+  const tabPositionX = useSharedValue(0);
+
   const onTabbarLayout = (e: LayoutChangeEvent) => {
     setDimensions({
       height: e.nativeEvent.layout.height,
       width: e.nativeEvent.layout.width,
     });
-    // Sets tabPosition to the middle
-    tabPositionX.value = dimensions.width / state.routes.length;
+    // Initialize position based on current active tab
+    const initialWidth = e.nativeEvent.layout.width / state.routes.length;
+    tabPositionX.value = initialWidth * state.index;
   };
-
-  const tabPositionX = useSharedValue(90);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {

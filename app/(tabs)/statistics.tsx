@@ -41,6 +41,7 @@ const Statistics = () => {
     weeklyData: rawWeeklyData,
     streakData,
     currentWaterIntake,
+    todayLogs,
     isOnline,
     isLoading,
     error,
@@ -64,7 +65,7 @@ const Statistics = () => {
     ...rawHourlyData.map(d => d.value),
     waterGoal
   );
-  const hourlyChartMax = Math.ceil(maxHourlyValue * 1.2 / 500) * 500; // Round up to nearest 500
+  const hourlyChartMax = Math.ceil(maxHourlyValue * 1.2 / 500) * 500 - 1000; // Round up to nearest 500
 
   // Handle pull-to-refresh
   const onRefresh = React.useCallback(async () => {
@@ -359,6 +360,22 @@ const Statistics = () => {
               dataPointsWidth={scale(12)}
               dataPointsColor={constantColors.accent}
             />
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+              style={{
+                color: 'gray',
+                fontSize: scale(12),
+                marginTop: scale(8),
+                textAlign: 'center',
+                fontFamily: 'Poppins-Regular',
+                paddingHorizontal: scale(4),
+              }}
+            >
+              {todayLogs.length} drink{todayLogs.length !== 1 ? 's' : ''} •{' '}
+              Total: {(currentWaterIntake / 1000).toFixed(2)}L
+            </Text>
           </View>
         </View>
       </ScrollView>

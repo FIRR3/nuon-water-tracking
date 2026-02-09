@@ -37,14 +37,14 @@ export const useSyncManager = (enabled = true) => {
     try {
       console.log('Performing automatic sync...');
       
-      // Sync water intake logs
-      const waterResult = await waterIntakeLogsService.syncOfflineQueue();
+      // Sync water intake logs and daily summaries in parallel
+      const [waterResult, summariesResult] = await Promise.all([
+        waterIntakeLogsService.syncOfflineQueue(),
+        dailySummariesOfflineService.syncOfflineQueue(),
+      ]);
       
       // Sync profile edits
       const editsResult = await offlineEditsService.syncOfflineQueue();
-      
-      // Sync daily summaries
-      const summariesResult = await dailySummariesOfflineService.syncOfflineQueue();
       
       lastSyncTimeRef.current = now;
       
@@ -59,8 +59,8 @@ export const useSyncManager = (enabled = true) => {
         console.log(`Auto-sync: ${totalFailed} entries failed, will retry later`);
       }
 
-      // Verify and fix daily summaries to match logs (last 7 days)
-      if (authUser?.$id && waterResult.synced > 0) {
+      // Verify and fix daily summaries to match logs (last 7 days) after both syncs complete
+      if (authUser?.$id && (waterResult.synced > 0 || summariesResult.synced > 0)) {
         const currentGoal = userHealthProfile?.customWaterGoal || recommendedIntake || 2400;
         const endDate = new Date();
         const startDate = new Date();
@@ -68,7 +68,16 @@ export const useSyncManager = (enabled = true) => {
         
         try {
           console.log('🔍 Verifying summaries match water logs...');
-          await verifyAndFixDateRange(authUser.$id, startDate, endDate, currentGoal);
+          const fixResult = await verifyAndFixDateRange(authUser.$id, startDate, endDate, currentGoal);
+          
+          // If summaries were fixed, sync them immediately
+          if (fixResult?.fixed > 0) {
+            console.log('🔄 Syncing fixed summaries to cloud...');
+            const fixedSyncResult = await dailySummariesOfflineService.syncOfflineQueue();
+            if (fixedSyncResult.synced > 0) {
+              console.log(`✅ Synced ${fixedSyncResult.synced} fixed summaries immediately`);
+            }
+          }
         } catch (error) {
           // Don't let verification errors break the sync flow
           const isNetworkError = error.message?.toLowerCase().includes('network') || 
