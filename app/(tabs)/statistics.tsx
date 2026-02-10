@@ -5,7 +5,17 @@ import { AppIcons } from "@/constants/icon";
 import { useStatisticsData } from "@/hooks/useStatisticsData";
 import { useUserStore } from "@/hooks/useUserStore";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Dimensions, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { BarChart, LineChart } from "react-native-gifted-charts";
 import { scale } from "react-native-size-matters";
 import Svg, { Circle } from "react-native-svg";
@@ -55,19 +65,23 @@ const Statistics = () => {
   const { isDark } = useTheme();
 
   const [refreshing, setRefreshing] = React.useState(false);
-  const [visibleDateRange, setVisibleDateRange] = useState({ start: '', end: '' });
+  const [visibleDateRange, setVisibleDateRange] = useState({
+    start: "",
+    end: "",
+  });
   const scrollViewRef = useRef<ScrollView>(null);
-  const { width: screenWidth } = Dimensions.get('window');
+  const { width: screenWidth } = Dimensions.get("window");
 
   const waterGoal = healthProfile?.customWaterGoal || recommendedIntake || 2400;
   const currentHour = new Date().getHours();
 
   // Calculate adaptive maxValue for all days
-  const maxDailyValue = allDays.length > 0 
-    ? Math.max(...allDays.map(d => d.value), waterGoal)
-    : waterGoal;
-  const chartMax = Math.ceil(maxDailyValue * 1.2 / 500) * 500;
-  
+  const maxDailyValue =
+    allDays.length > 0
+      ? Math.max(...allDays.map((d) => d.value), waterGoal)
+      : waterGoal;
+  const chartMax = Math.ceil((maxDailyValue * 1.2) / 500) * 500;
+
   // Calculate bar width based on 7 bars fitting in screen width
   const chartContainerPadding = scale(20) * 2; // paddingHorizontal on outer container
   const chartInnerPadding = scale(20) * 2; // px-5 on inner container = scale(20)
@@ -81,14 +95,17 @@ const Statistics = () => {
 
   // Calculate average weekly intake for visible 7 days
   const [averageWeeklyIntake, setAverageWeeklyIntake] = useState(0);
-  
+
   useEffect(() => {
     if (visibleDateRange.start && visibleDateRange.end) {
-      const visibleDays = allDays.filter(day => 
-        day.date >= visibleDateRange.start && day.date <= visibleDateRange.end
+      const visibleDays = allDays.filter(
+        (day) =>
+          day.date >= visibleDateRange.start &&
+          day.date <= visibleDateRange.end,
       );
       const totalIntake = visibleDays.reduce((sum, day) => sum + day.value, 0);
-      const average = visibleDays.length > 0 ? totalIntake / visibleDays.length : 0;
+      const average =
+        visibleDays.length > 0 ? totalIntake / visibleDays.length : 0;
       setAverageWeeklyIntake(average);
     }
   }, [visibleDateRange, allDays]);
@@ -112,11 +129,18 @@ const Statistics = () => {
     const offsetX = event.nativeEvent.contentOffset.x;
     // Calculate first visible day based on scroll position
     const firstVisibleIndex = Math.round(offsetX / barTotalWidth);
-    const lastVisibleIndex = Math.min(firstVisibleIndex + 6, allDays.length - 1); // 7 days visible
+    const lastVisibleIndex = Math.min(
+      firstVisibleIndex + 6,
+      allDays.length - 1,
+    ); // 7 days visible
 
-    if (allDays.length > 0 && firstVisibleIndex >= 0 && lastVisibleIndex < allDays.length) {
-      const startDate = allDays[firstVisibleIndex]?.date || '';
-      const endDate = allDays[lastVisibleIndex]?.date || '';
+    if (
+      allDays.length > 0 &&
+      firstVisibleIndex >= 0 &&
+      lastVisibleIndex < allDays.length
+    ) {
+      const startDate = allDays[firstVisibleIndex]?.date || "";
+      const endDate = allDays[lastVisibleIndex]?.date || "";
       setVisibleDateRange({ start: startDate, end: endDate });
     }
 
@@ -128,39 +152,42 @@ const Statistics = () => {
 
   // Format date range for display
   const formatDateRange = (startDate: string, endDate: string): string => {
-    if (!startDate || !endDate) return '';
-    
+    if (!startDate || !endDate) return "";
+
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
-    const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
-    const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
+
+    const startMonth = start.toLocaleDateString("en-US", { month: "short" });
+    const endMonth = end.toLocaleDateString("en-US", { month: "short" });
     const startDay = start.getDate();
     const endDay = end.getDate();
-    
+
     if (startMonth === endMonth) {
       return `${startDay}-${endDay} ${startMonth}`;
     } else {
       return `${startDay} ${startMonth} - ${endDay} ${endMonth}`;
     }
   };
-  
+
   // Initialize visible date range and scroll to current week
   useEffect(() => {
     if (allDays.length > 0) {
       const lastIndex = allDays.length - 1;
       const firstVisibleIndex = Math.max(0, lastIndex - 6);
       setVisibleDateRange({
-        start: allDays[firstVisibleIndex]?.date || '',
-        end: allDays[lastIndex]?.date || '',
+        start: allDays[firstVisibleIndex]?.date || "",
+        end: allDays[lastIndex]?.date || "",
       });
-      
+
       // Scroll to show the last 7 days (current week)
       setTimeout(() => {
         if (scrollViewRef.current && allDays.length > 7) {
           // Calculate scroll position to show last 7 days
           const scrollPosition = (allDays.length - 7) * barTotalWidth;
-          scrollViewRef.current.scrollTo({ x: scrollPosition, animated: false });
+          scrollViewRef.current.scrollTo({
+            x: scrollPosition,
+            animated: false,
+          });
         }
       }, 100);
     }
@@ -181,7 +208,7 @@ const Statistics = () => {
         <View
           style={{
             marginBottom: scale(4),
-            alignItems: 'center',
+            alignItems: "center",
             width: barWidth,
           }}
         >
@@ -273,7 +300,11 @@ const Statistics = () => {
           }}
         >
           <Text
-            style={{ color: "white", fontSize: scale(12), fontWeight: "600" }}
+            style={{
+              color: colors.primary,
+              fontSize: scale(12),
+              fontWeight: "600",
+            }}
           >
             Offline - Showing locally stored data
           </Text>
@@ -293,13 +324,15 @@ const Statistics = () => {
             borderRadius: scale(8),
           }}
         >
-          <Text style={{ color: "white", fontSize: scale(12) }}>{error}</Text>
+          <Text style={{ color: colors.primary, fontSize: scale(12) }}>
+            {error}
+          </Text>
         </View>
       )}
 
       {/* Loading State - Only show when offline to avoid flickering during fast online syncs */}
       {isLoading && !refreshing && !isOnline && (
-        <View style={{ padding: scale(20), alignItems: 'center' }}>
+        <View style={{ padding: scale(20), alignItems: "center" }}>
           <ActivityIndicator size="large" color={constantColors.accent} />
           <Text
             style={{
@@ -345,8 +378,14 @@ const Statistics = () => {
                     {(averageWeeklyIntake / 1000).toFixed(1) + "L avg"}
                   </Text>
                 </View>
-                <Text className="font-poppins text-xs text-gray-400">
-                  {formatDateRange(visibleDateRange.start, visibleDateRange.end)}
+                <Text
+                  style={{ color: isDark ? "lightgray" : "gray" }}
+                  className="font-poppins text-xs"
+                >
+                  {formatDateRange(
+                    visibleDateRange.start,
+                    visibleDateRange.end,
+                  )}
                 </Text>
               </View>
 
@@ -373,7 +412,10 @@ const Statistics = () => {
                   spacing={scale(10.5)}
                   hideRules
                   isAnimated
-                  xAxisLabelTextStyle={{ color: "white", fontSize: scale(12) }}
+                  xAxisLabelTextStyle={{
+                    color: colors.primary,
+                    fontSize: scale(12),
+                  }}
                   hideYAxisText
                   scrollToEnd
                   showReferenceLine1
@@ -397,12 +439,13 @@ const Statistics = () => {
         <View style={{ paddingHorizontal: scale(20) }}>
           <View>
             <Text className="text-light-primary dark:text-dark-primary text-md font-poppins-medium">
-              Streak: {streakData.currentStreak} {streakData.currentStreak === 1 ? 'day' : 'days'} 
+              Streak: {streakData.currentStreak}{" "}
+              {streakData.currentStreak === 1 ? "day" : "days"}
             </Text>
             <Text className="text-light-primary dark:text-dark-primary font-poppins text-sm mb-3">
               {streakData.remainingToGoal > 0
                 ? `Drink ${Math.round(streakData.remainingToGoal / 50) * 50}ml more water to reach your daily goal!`
-                : "🎉 Goal reached! Keep it up!"}
+                : "Goal reached! Keep it up!"}
             </Text>
             <View
               style={{
@@ -446,7 +489,10 @@ const Statistics = () => {
           </View>
         </View>
 
-        <View style={{ paddingHorizontal: scale(20) }} className="flex flex-col bg-light-secondary dark:bg-dark-secondary px-5 py-4 gap-3 rounded-xl">
+        <View
+          style={{ paddingHorizontal: scale(20) }}
+          className="flex flex-col bg-light-secondary dark:bg-dark-secondary px-5 py-4 gap-3 rounded-xl"
+        >
           <View className="flex-row gap-2 items-center mb-2">
             <Text className="font-poppins-medium text-md text-light-primary dark:text-dark-primary">
               Today
