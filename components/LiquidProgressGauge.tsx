@@ -218,6 +218,16 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
     return width / 2 - w / 2;
   }, [waterRemainingText, smFont, width]);
 
+  // Derived: Gradient vectors (start at wave height, end at bottom)
+  const gradientStart = useDerivedValue(() => {
+    const startY = fillRectHeight * (1 - animatedFillPercent.value);
+    return vec(0, startY);
+  }, [animatedFillPercent, fillRectHeight]);
+
+  const gradientEnd = useDerivedValue(() => {
+    return vec(0, fillRectHeight);
+  }, [fillRectHeight]);
+
   // ── Animated clip path (wave + fill height) ─────────────────────
   const clipPath = useDerivedValue(() => {
     const frac = animatedFillPercent.value;
@@ -255,10 +265,6 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
     raw.transform(m);
     return raw;
   }, [plusCenterX, plusCenterY, plusSize]);
-
-  // Gradient Y positions (static – the clip path handles the animation)
-  const gradientStartY = fillRectHeight;
-  const gradientEndY = 0; // full height gradient, clipped by wave
 
   // ── Sub-components ──────────────────────────────────────────────
   const WaveMasked = React.memo(({ path, aboveColor, belowColor, clipPath }: {
@@ -433,9 +439,9 @@ export const LiquidProgressGauge = ({ width, height, value, maxValue, userName, 
           height={fillRectHeight}
         >
           <LinearGradient
-            start={vec(0, gradientStartY)}
-            end={vec(0, gradientEndY)}
-            colors={["hsl(208, 92%, 62%)", "hsl(221, 91%, 58%)"]}
+            start={gradientStart}
+            end={gradientEnd}
+            colors={["hsl(221, 91%, 58%)", "hsl(208, 92%, 62%)"]}
           />
         </Rect>
         <GaugeGreeting

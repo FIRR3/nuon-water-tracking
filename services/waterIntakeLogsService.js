@@ -152,6 +152,26 @@ export class WaterIntakeLogsService {
       
       // Queue for cloud sync
       await dailySummariesOfflineService.queueSummaryUpdate(userId, dateStr, summary);
+      console.log('✅ Queued daily summary for sync:', dateStr);
+      
+      // Try to sync immediately (same pattern as water intake logs)
+      const queueEntry = {
+        userId,
+        date: dateStr,
+        summary,
+        queuedAt: new Date().toISOString(),
+      };
+      
+      const syncSuccess = await dailySummariesOfflineService.syncSingleSummary(queueEntry);
+      
+      if (syncSuccess) {
+        // Success! Remove from queue
+        await dailySummariesOfflineService.removeSummaryFromQueue(userId, dateStr);
+        console.log('✅ Synced daily summary to cloud immediately:', dateStr);
+      } else {
+        // Failed, but it's queued for retry
+        console.log('⚠️ Cloud sync failed for daily summary, queued for retry:', dateStr);
+      }
       
     } catch (error) {
       console.error('❌ Error updating daily summary:', error);

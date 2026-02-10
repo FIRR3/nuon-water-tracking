@@ -225,6 +225,29 @@ export class DailySummariesOfflineService {
   }
 
   /**
+   * Remove a specific summary from the offline queue
+   * Used when a summary is successfully synced immediately
+   * @param {string} userId - User ID
+   * @param {string} date - ISO datetime string (midnight)
+   */
+  async removeSummaryFromQueue(userId, date) {
+    try {
+      const queue = await this.getOfflineQueue();
+      const newQueue = queue.filter(
+        entry => !(entry.userId === userId && entry.date === date)
+      );
+      
+      if (newQueue.length < queue.length) {
+        await this.saveOfflineQueue(newQueue);
+        this.notifySyncListeners('synced', newQueue.length);
+        console.log('Removed summary from offline queue, remaining:', newQueue.length);
+      }
+    } catch (error) {
+      console.error('Error removing summary from offline queue:', error);
+    }
+  }
+
+  /**
    * Clear offline queue
    */
   async clearQueue() {
