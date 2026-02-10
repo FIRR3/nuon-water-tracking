@@ -20,9 +20,9 @@ const ActivityLevel = () => {
         try {
           // This now saves locally first and syncs to cloud automatically
           await updateHealthProfile({ activityLevel: selectedLifestyle });
-          console.log('Activity level updated:', selectedLifestyle);
+          console.log("Activity level updated:", selectedLifestyle);
         } catch (error) {
-          console.error('Error updating activity level:', error);
+          console.error("Error updating activity level:", error);
         }
       };
 
@@ -50,11 +50,11 @@ const ActivityLevel = () => {
 
   return (
     <ScreenBackgroundWrapper className="pt-10">
-      <Text className="text-white text-md font-poppins-semibold pl-5 mb-2 mt-10">
+      <Text className="text-light-primary dark:text-dark-primary text-md font-poppins-semibold pl-5 mb-2 mt-10">
         Everyday lifestyle
       </Text>
 
-      <View className="bg-dark-secondary px-5 py-7 gap-6">
+      <View className="bg-light-secondary dark:bg-dark-secondary px-5 py-7 gap-6">
         {lifestyleOptions.map((option, index) => (
           <React.Fragment key={index}>
             <TouchableOpacity
@@ -73,16 +73,16 @@ const ActivityLevel = () => {
                   style={{ position: "absolute" }}
                 />
               )}
-              <Text className="text-white text-sm font-poppins-semibold">
+              <Text className="text-light-primary dark:text-dark-primary text-sm font-poppins-semibold">
                 {option.id}
               </Text>
-              <Text className="text-white text-sm font-poppins">
+              <Text className="text-light-primary dark:text-dark-primary text-sm font-poppins">
                 {option.description}
               </Text>
             </TouchableOpacity>
 
             {index !== lifestyleOptions.length - 1 && (
-              <View className="bg-white h-[1px]"></View>
+              <View className="bg-light-primary/15 dark:bg-white/15 h-[1px]"></View>
             )}
           </React.Fragment>
         ))}

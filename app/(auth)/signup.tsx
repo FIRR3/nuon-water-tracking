@@ -159,14 +159,14 @@ export default function SignupScreen() {
             <View className="w-full flex-row gap-5">
               <Animated.View
                 entering={FadeInDown.duration(1000).springify()}
-                className="bg-dark-secondary p-5 rounded-lg flex-1"
+                className="bg-light-secondary dark:bg-dark-secondary p-5 rounded-lg flex-1"
               >
                 <TextInput
                   value={firstName}
                   onChangeText={setFirstName}
                   placeholder="First Name"
                   placeholderTextColor={"gray"}
-                  className="text-white font-poppins w-full"
+                  className="text-light-primary dark:text-white font-poppins w-full"
                   returnKeyType="next"
                   onSubmitEditing={() =>
                     !lastName && lastNameRef.current?.focus()
@@ -177,7 +177,7 @@ export default function SignupScreen() {
 
               <Animated.View
                 entering={FadeInDown.delay(100).duration(1000).springify()}
-                className="bg-dark-secondary p-5 rounded-lg flex-1"
+                className="bg-light-secondary dark:bg-dark-secondary p-5 rounded-lg flex-1"
               >
                 <TextInput
                   ref={lastNameRef}
@@ -185,7 +185,7 @@ export default function SignupScreen() {
                   onChangeText={setLastName}
                   placeholder="Last Name"
                   placeholderTextColor={"gray"}
-                  className="text-white font-poppins w-full"
+                  className="text-light-primary dark:text-white font-poppins w-full"
                   onSubmitEditing={() => toggleDatePicker()}
                 />
               </Animated.View>
@@ -218,7 +218,7 @@ export default function SignupScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={confirmIOSDate}
-                  className="flex-1 bg-dark-accent py-[12px] px-4 rounded-xl"
+                  className="flex-1 bg-light-accent dark:bg-dark-accent py-[12px] px-4 rounded-xl"
                 >
                   <Text className="text-white text-center text-md font-poppins-medium">
                     Confirm
@@ -230,7 +230,7 @@ export default function SignupScreen() {
             {!showDatePicker && (
               <Animated.View
                 entering={FadeInDown.delay(200).duration(1000).springify()}
-                className="bg-dark-secondary p-5 rounded-lg w-full"
+                className="bg-light-secondary dark:bg-dark-secondary p-5 rounded-lg w-full"
               >
                 <Pressable onPress={toggleDatePicker}>
                   <TextInput
@@ -240,7 +240,7 @@ export default function SignupScreen() {
                     placeholderTextColor={"gray"}
                     editable={false}
                     onPressIn={toggleDatePicker}
-                    className="text-white font-poppins w-full"
+                    className="text-light-primary dark:text-white font-poppins w-full"
                     submitBehavior="blurAndSubmit"
                   />
                 </Pressable>
@@ -249,7 +249,7 @@ export default function SignupScreen() {
 
             <Animated.View
               entering={FadeInDown.delay(300).duration(1000).springify()}
-              className="bg-dark-secondary p-5 rounded-lg w-full"
+              className="bg-light-secondary dark:bg-dark-secondary p-5 rounded-lg w-full"
             >
               <TextInput
                 ref={emailRef}
@@ -259,7 +259,7 @@ export default function SignupScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 placeholderTextColor={"gray"}
-                className="text-white font-poppins w-full"
+                className="text-light-primary dark:text-white font-poppins w-full"
                 returnKeyType="next"
                 onSubmitEditing={() =>
                   !password && passwordRef.current?.focus()
@@ -270,7 +270,7 @@ export default function SignupScreen() {
 
             <Animated.View
               entering={FadeInDown.delay(400).duration(1000).springify()}
-              className="bg-dark-secondary p-5 rounded-lg w-full"
+              className="bg-light-secondary dark:bg-dark-secondary p-5 rounded-lg w-full"
             >
               <TextInput
                 ref={passwordRef}
@@ -280,7 +280,7 @@ export default function SignupScreen() {
                 autoCapitalize="none"
                 secureTextEntry
                 placeholderTextColor={"gray"}
-                className="text-white font-poppins w-full"
+                className="text-light-primary dark:text-white font-poppins w-full"
                 returnKeyType="done"
                 onSubmitEditing={handleSignup}
               />
@@ -293,7 +293,7 @@ export default function SignupScreen() {
               <TouchableOpacity
                 onPress={handleSignup}
                 disabled={loading}
-                className="w-full bg-dark-accent p-3 rounded-2xl mb-3"
+                className="w-full bg-light-accent dark:bg-dark-accent p-3 rounded-2xl mb-3"
               >
                 <Text className="text-md font-poppins-medium text-white text-center">
                   {loading ? "Creating..." : "Create account"}

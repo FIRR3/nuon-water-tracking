@@ -1,11 +1,12 @@
 import Header from "@/components/Header";
+import { ThemeProvider } from "@/components/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import {
-    account,
-    DATABASE_ID,
-    databases,
-    USERS_TABLE_ID,
+  account,
+  DATABASE_ID,
+  databases,
+  USERS_TABLE_ID,
 } from "@/services/appwrite";
 import * as Font from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
@@ -16,9 +17,9 @@ import "./globals.css";
 
 // Suppress specific warnings about asset downloads when offline
 LogBox.ignoreLogs([
-  'ExpoAsset.downloadAsync',
-  'downloadAsync has been rejected',
-  'call the function \'ExpoAsset.downloadAsync\' has been rejected',
+  "ExpoAsset.downloadAsync",
+  "downloadAsync has been rejected",
+  "call the function 'ExpoAsset.downloadAsync' has been rejected",
 ]);
 
 const customFonts = {
@@ -38,6 +39,7 @@ export default function RootLayout() {
     completeOnboarding,
     logout,
   } = useAuth();
+
   const router = useRouter();
   const segments = useSegments();
   const colors = useThemeColors();
@@ -52,16 +54,18 @@ export default function RootLayout() {
   useEffect(() => {
     // @ts-ignore - ErrorUtils is available in React Native
     const originalHandler = global.ErrorUtils?.getGlobalHandler();
-    
+
     // @ts-ignore
     global.ErrorUtils?.setGlobalHandler((error, isFatal) => {
       // Suppress ExpoAsset download errors (fonts are already cached)
-      if (error?.message?.includes('ExpoAsset.downloadAsync') || 
-          error?.message?.includes('downloadAsync')) {
-        console.log('Suppressed asset download error (offline mode)');
+      if (
+        error?.message?.includes("ExpoAsset.downloadAsync") ||
+        error?.message?.includes("downloadAsync")
+      ) {
+        console.log("Suppressed asset download error (offline mode)");
         return;
       }
-      
+
       // Call original handler for other errors
       if (originalHandler) {
         originalHandler(error, isFatal);
@@ -108,10 +112,10 @@ export default function RootLayout() {
       try {
         // Pre-load fonts
         await Font.loadAsync(customFonts);
-        console.log('Fonts loaded successfully');
+        console.log("Fonts loaded successfully");
       } catch (e) {
         // Suppress font loading errors when offline - fonts may already be cached
-        console.log('Font loading skipped (may be offline or already cached)');
+        console.log("Font loading skipped (may be offline or already cached)");
         // Continue anyway - fonts are likely already loaded from previous sessions
       } finally {
         setAppIsReady(true);
@@ -157,21 +161,23 @@ export default function RootLayout() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <StatusBar style="auto" />
-      <Stack
-        screenOptions={{
-          headerShown: true,
-          header: ({ route, options }) => (
-            <Header title={options.title || route.name} showBack={true} />
-          ),
-        }}
-      >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-        <Stack.Screen name="settings" options={{ headerShown: false }} />
-      </Stack>
-    </View>
+    <ThemeProvider>
+      <View style={{ flex: 1 }}>
+        <StatusBar style="auto" />
+        <Stack
+          screenOptions={{
+            headerShown: true,
+            header: ({ route, options }) => (
+              <Header title={options.title || route.name} showBack={true} />
+            ),
+          }}
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
+        </Stack>
+      </View>
+    </ThemeProvider>
   );
 }

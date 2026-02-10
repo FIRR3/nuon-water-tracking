@@ -1,6 +1,7 @@
 import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
 import Section from "@/components/Section";
 import SettingsRow from "@/components/SettingsRow";
+import { useTheme } from "@/components/ThemeContext";
 import ToggleButton from "@/components/ToggleButton";
 import { AppIcons } from "@/constants/icon";
 import { useNetworkState } from "@/hooks/useNetworkState";
@@ -20,15 +21,17 @@ export function capitalizeFirstLetter(val: string) {
 }
 
 const Settings = () => {
-  const { 
-    userProfile, 
-    healthProfile, 
-    recommendedIntake, 
-    pendingSyncCount, 
+  const {
+    userProfile,
+    healthProfile,
+    recommendedIntake,
+    pendingSyncCount,
     pendingEditsCount,
     syncAllOfflineData,
   } = useUserStore();
-  
+
+  const { colors, toggleTheme, isDark } = useTheme();
+
   const { isOnline } = useNetworkState();
 
   const [customGoal, setCustomGoal] = useState(
@@ -36,7 +39,7 @@ const Settings = () => {
   );
 
   const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+  const [darkModeEnabled, setDarkModeEnabled] = useState(isDark ? true : false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [permissionStatus, setPermissionStatus] =
     useState<string>("checking...");
@@ -131,7 +134,7 @@ const Settings = () => {
     } else if (success && newValue) {
       Alert.alert(
         "Reminders Enabled",
-        "You'll receive daily reminders at:\n\n" + "• 11:00 AM\n" + "• 5:00 PM",
+        "You'll receive daily reminders to drink more water!",
         [{ text: "Got it" }],
       );
     } else if (success && !newValue) {
@@ -143,32 +146,41 @@ const Settings = () => {
     }
   };
 
-  let userName = userProfile?.firstName && userProfile?.lastName 
-    ? `${userProfile.firstName} ${userProfile.lastName}` 
-    : 'User';
+  const handleDarkModeToggle = () => {
+    toggleTheme();
+    setDarkModeEnabled((prev) => !prev);
+  };
+
+  let userName =
+    userProfile?.firstName && userProfile?.lastName
+      ? `${userProfile.firstName} ${userProfile.lastName}`
+      : "User";
   let age = userProfile?.birthday ? calculateAge(userProfile.birthday) : 0;
   let currentWeight = healthProfile?.weight || 0;
   let waterGoal = customGoal ? customGoal : recommendedIntake;
-  let activityLevel = healthProfile?.activityLevel || 'Moderate';
-  
+  let activityLevel = healthProfile?.activityLevel || "Moderate";
+
   const totalPending = pendingSyncCount + pendingEditsCount;
-  
+
   const handleManualSync = async () => {
     if (!isOnline) {
-      Alert.alert('Offline', 'Please connect to the internet to sync your data.');
+      Alert.alert(
+        "Offline",
+        "Please connect to the internet to sync your data.",
+      );
       return;
     }
-    
+
     setIsSyncing(true);
     try {
       const result = await syncAllOfflineData();
       if (result.synced > 0) {
-        Alert.alert('Success', `Synced ${result.synced} items successfully!`);
+        Alert.alert("Success", `Synced ${result.synced} items successfully!`);
       } else {
-        Alert.alert('Info', 'All data is already synced.');
+        Alert.alert("Info", "All data is already synced.");
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to sync data. Please try again.');
+      Alert.alert("Error", "Failed to sync data. Please try again.");
     } finally {
       setIsSyncing(false);
     }
@@ -188,38 +200,38 @@ const Settings = () => {
       >
         <Section rounded className="mt-8 gap-[1px]">
           <SettingsRow showHR>
-            <Text 
+            <Text
               numberOfLines={1}
-              className="text-white text-lg font-poppins-medium flex-1"
+              className="text-light-primary dark:text-dark-primary text-lg font-poppins-medium flex-1"
               style={{ marginRight: scale(8) }}
             >
               {userName}
             </Text>
-            <Text className="text-white text-md font-poppins-semibold">
+            <Text className="text-light-primary dark:text-dark-primary text-md font-poppins-semibold">
               {age + " years"}
             </Text>
           </SettingsRow>
 
           <SettingsRow>
-            <Text className="text-white text-[15px] font-poppins-medium">
+            <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
               Current weight
             </Text>
-            <Text className="text-white text-[15px] font-poppins-semibold">
+            <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-semibold">
               {currentWeight + "kg"}
             </Text>
           </SettingsRow>
 
           <SettingsRow>
-            <Text className="text-white text-[15px] font-poppins-medium">
+            <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
               Water goal
             </Text>
-            <Text className="text-white text-[15px] font-poppins-semibold">
+            <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-semibold">
               {waterGoal / 1000 + "L"}
             </Text>
           </SettingsRow>
 
           <SettingsRow>
-            <Text className="text-white text-[15px] font-poppins-medium">
+            <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
               <Text className="font-poppins-semibold">
                 {capitalizeFirstLetter(activityLevel)}
               </Text>{" "}
@@ -234,7 +246,7 @@ const Settings = () => {
             showHR
             icon={AppIcons.profileAdd}
           >
-            <Text className="text-white text-[15px] font-poppins-medium">
+            <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
               Personal details
             </Text>
           </SettingsRow>
@@ -243,7 +255,7 @@ const Settings = () => {
             showHR
             icon={AppIcons.droplet}
           >
-            <Text className="text-white text-[15px] font-poppins-medium">
+            <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
               Water settings
             </Text>
           </SettingsRow>
@@ -251,7 +263,7 @@ const Settings = () => {
             linkTo="/settings/activity-level"
             icon={AppIcons.activity}
           >
-            <Text className="text-white text-[15px] font-poppins-medium">
+            <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
               Activity level
             </Text>
           </SettingsRow>
@@ -263,7 +275,7 @@ const Settings = () => {
             showHR
             icon={AppIcons.profile}
           >
-            <Text className="text-white text-[15px] font-poppins-medium">
+            <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
               My account
             </Text>
           </SettingsRow>
@@ -273,7 +285,7 @@ const Settings = () => {
             icon={AppIcons.bell}
             onPress={handleNotificationToggle}
           >
-            <Text className="text-white text-[15px] font-poppins-medium">
+            <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
               Notifications
             </Text>
             <ToggleButton
@@ -285,48 +297,50 @@ const Settings = () => {
           <SettingsRow
             showHR
             icon={AppIcons.moon}
-            onPress={() => setDarkModeEnabled((prev) => !prev)}
+            onPress={handleDarkModeToggle}
           >
-            <Text className="text-white text-[15px] font-poppins-medium">
+            <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
               Dark mode
             </Text>
             <ToggleButton
               isToggled={darkModeEnabled}
-              onPress={() => setDarkModeEnabled((prev) => !prev)}
+              onPress={handleDarkModeToggle}
             />
           </SettingsRow>
 
           <SettingsRow linkTo="/settings/privacy-policy" icon={AppIcons.lock}>
-            <Text className="text-white text-[15px] font-poppins-medium">
+            <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
               Privacy policy
             </Text>
           </SettingsRow>
         </Section>
-        
+
         {/* Sync Status Section */}
         {totalPending > 0 && (
           <Section rounded title="Sync Status">
             <View className="p-4">
-              <Text className="text-white text-sm font-poppins mb-2">
-                {totalPending} item{totalPending !== 1 ? 's' : ''} pending sync
+              <Text className="text-light-primary dark:text-dark-primary text-sm font-poppins mb-2">
+                {totalPending} item{totalPending !== 1 ? "s" : ""} pending sync
               </Text>
               {pendingSyncCount > 0 && (
-                <Text className="text-white/70 text-xs font-poppins">
-                  • {pendingSyncCount} water intake log{pendingSyncCount !== 1 ? 's' : ''}
+                <Text className="text-light-primary/70 dark:text-white/70 text-xs font-poppins">
+                  • {pendingSyncCount} water intake log
+                  {pendingSyncCount !== 1 ? "s" : ""}
                 </Text>
               )}
               {pendingEditsCount > 0 && (
-                <Text className="text-white/70 text-xs font-poppins mb-3">
-                  • {pendingEditsCount} profile edit{pendingEditsCount !== 1 ? 's' : ''}
+                <Text className="text-light-primary/70 dark:text-white/70 text-xs font-poppins mb-3">
+                  • {pendingEditsCount} profile edit
+                  {pendingEditsCount !== 1 ? "s" : ""}
                 </Text>
               )}
               <TouchableOpacity
                 onPress={handleManualSync}
                 disabled={isSyncing || !isOnline}
-                className={`bg-dark-accent py-3 rounded-lg ${(isSyncing || !isOnline) ? 'opacity-50' : ''}`}
+                className={`bg-light-accent dark:bg-dark-accent py-3 rounded-lg ${isSyncing || !isOnline ? "opacity-50" : ""}`}
               >
                 <Text className="text-white text-center font-poppins-medium">
-                  {isSyncing ? 'Syncing...' : 'Sync Now'}
+                  {isSyncing ? "Syncing..." : "Sync Now"}
                 </Text>
               </TouchableOpacity>
             </View>

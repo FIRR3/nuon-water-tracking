@@ -14,59 +14,59 @@ const PersonalDetails = () => {
 
   let currentWeight = healthProfile?.weight || 0;
   let height = healthProfile?.height || 0;
-  let dateOfBirth = userProfile?.birthday?.split("T")[0] || 'N/A';
-  let gender = healthProfile?.gender || 'N/A';
-  let activityLevel = healthProfile?.activityLevel || 'N/A';
+  let dateOfBirth = userProfile?.birthday?.split("T")[0] || "N/A";
+  let gender = healthProfile?.gender || "N/A";
+  let activityLevel = healthProfile?.activityLevel || "N/A";
 
   return (
     <ScreenBackgroundWrapper>
       <View className="px-5 pt-10">
-        <Text className="text-white text-md font-poppins-semibold">
+        <Text className="text-light-primary dark:text-dark-primary text-md font-poppins-semibold">
           Your info
         </Text>
-        <Text className="text-white text-sm font-poppins">
+        <Text className="text-light-primary dark:text-dark-primary text-sm font-poppins">
           This is what we use to calculate your daily water intake.
         </Text>
       </View>
 
       <Section className="mt-5">
         <SettingsRow showHR>
-          <Text className="text-white text-[15px] font-poppins-medium">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
             Current weight
           </Text>
-          <Text className="text-white text-[15px] font-poppins-semibold">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-semibold">
             {currentWeight}kg
           </Text>
         </SettingsRow>
         <SettingsRow showHR>
-          <Text className="text-white text-[15px] font-poppins-medium">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
             Height
           </Text>
-          <Text className="text-white text-[15px] font-poppins-semibold">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-semibold">
             {height}m
           </Text>
         </SettingsRow>
         <SettingsRow showHR>
-          <Text className="text-white text-[15px] font-poppins-medium">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
             Date of birth
           </Text>
-          <Text className="text-white text-[15px] font-poppins-semibold">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-semibold">
             {dateOfBirth}
           </Text>
         </SettingsRow>
         <SettingsRow showHR>
-          <Text className="text-white text-[15px] font-poppins-medium">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
             Gender
           </Text>
-          <Text className="text-white text-[15px] font-poppins-semibold">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-semibold">
             {gender}
           </Text>
         </SettingsRow>
         <SettingsRow>
-          <Text className="text-white text-[15px] font-poppins-medium">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
             Activity level
           </Text>
-          <Text className="text-white text-[15px] font-poppins-semibold">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-semibold">
             {activityLevel}
           </Text>
         </SettingsRow>

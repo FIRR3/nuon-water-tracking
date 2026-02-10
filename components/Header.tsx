@@ -1,61 +1,65 @@
 // components/Header.tsx
-import { constantColors, darkColors } from '@/constants/colors';
-import { UIIcons } from '@/constants/icon';
-import { FONT_SIZES } from '@/constants/typography';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scale } from 'react-native-size-matters';
+import { useTheme } from "@/components/ThemeContext";
+import { UIIcons } from "@/constants/icon";
+import { FONT_SIZES } from "@/constants/typography";
+import { useRouter } from "expo-router";
+import React from "react";
+import { Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scale } from "react-native-size-matters";
 
 type Props = {
   title: string;
   showBack?: boolean;
-}
+};
 
 const Header = ({ title, showBack = false }: Props) => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  
+  const { colors, isDark } = useTheme();
+
   return (
-    <View 
+    <View
       style={{
-        height: scale(55) + insets.top, // Header height + status bar
-        backgroundColor: darkColors.secondary,
-        paddingTop: insets.top, // Push content below status bar
-        justifyContent: 'center', // Align content to bottom
-        paddingBottom: scale(10), // Distance from bottom
+        height: scale(55) + insets.top,
+        backgroundColor: colors.secondary,
+        paddingTop: insets.top,
+        justifyContent: "center",
+        paddingBottom: scale(10),
         paddingHorizontal: scale(16),
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        position: 'relative',
+        flexDirection: "row",
+        alignItems: "flex-end",
+        position: "relative",
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 10 },
+        shadowOffset: { width: 0, height: isDark ? 10 : 4 },
         shadowRadius: 10,
         shadowOpacity: 0.1,
       }}
     >
       {/* Back button */}
       {showBack && (
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => router.back()}
-          style={{ 
-            position: 'absolute',
+          style={{
+            position: "absolute",
             left: scale(16),
             bottom: scale(15),
           }}
         >
-          <UIIcons.chevronLeft color={constantColors.white} size={Math.round(FONT_SIZES.lg)}/>
+          <UIIcons.chevronLeft
+            color={colors.primary}
+            size={Math.round(FONT_SIZES.lg)}
+          />
         </TouchableOpacity>
       )}
-      
+
       {/* Title */}
       <Text
         style={{
-          fontFamily: 'Poppins-SemiBold',
+          fontFamily: "Poppins-SemiBold",
           fontSize: Math.round(FONT_SIZES.lg),
-          color: constantColors.white,
-          textAlign: 'center',
+          color: colors.primary,
+          textAlign: "center",
         }}
       >
         {title}

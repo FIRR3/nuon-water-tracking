@@ -93,7 +93,7 @@ export default function LoginScreen() {
           <View className="flex items-center mx-4 gap-5">
             <Animated.View
               entering={FadeInDown.duration(1000).springify()}
-              className="bg-dark-secondary p-5 rounded-lg w-full"
+              className="bg-light-secondary dark:bg-dark-secondary p-5 rounded-lg w-full"
             >
               <TextInput
                 value={email}
@@ -102,7 +102,7 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 placeholderTextColor={"gray"}
-                className="text-white font-poppins"
+                className="text-light-primary dark:text-white font-poppins"
                 returnKeyType="next"
                 onSubmitEditing={() => passwordRef.current?.focus()}
                 submitBehavior="blurAndSubmit"
@@ -111,7 +111,7 @@ export default function LoginScreen() {
 
             <Animated.View
               entering={FadeInDown.delay(200).duration(1000).springify()}
-              className="bg-dark-secondary p-5 rounded-lg w-full mb-3"
+              className="bg-light-secondary dark:bg-dark-secondary p-5 rounded-lg w-full mb-3"
             >
               <TextInput
                 ref={passwordRef}
@@ -125,7 +125,7 @@ export default function LoginScreen() {
                 returnKeyType="done"
                 onSubmitEditing={handleLogin}
                 autoCorrect={false}
-                className="text-white font-poppins"
+                className="text-light-primary dark:text-white font-poppins"
               />
             </Animated.View>
 
@@ -136,7 +136,7 @@ export default function LoginScreen() {
               <TouchableOpacity
                 onPress={handleLogin}
                 disabled={loading}
-                className="w-full bg-dark-accent p-3 rounded-2xl mb-3"
+                className="w-full bg-light-accent dark:bg-dark-accent p-3 rounded-2xl mb-3"
               >
                 <Text className="text-md font-poppins-semibold text-white text-center">
                   {loading ? "Logging in..." : "Login"}

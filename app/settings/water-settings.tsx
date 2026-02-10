@@ -1,11 +1,13 @@
 import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
-import { constantColors, darkColors } from "@/constants/colors";
+import { useTheme } from "@/components/ThemeContext";
+import { constantColors } from "@/constants/colors";
 import { useUserStore } from "@/hooks/useUserStore";
 import Slider from "@react-native-community/slider";
 import React, { useEffect, useState } from "react";
 import { Alert, Text, TouchableOpacity, View } from "react-native";
 
 const WaterSettings = () => {
+  const { colors } = useTheme();
   const { healthProfile, recommendedIntake, updateHealthProfile } =
     useUserStore();
 
@@ -42,11 +44,14 @@ const WaterSettings = () => {
             try {
               // This now saves locally first and syncs to cloud
               await updateHealthProfile({ customWaterGoal: null });
-              console.log('Water goal reset to default');
+              console.log("Water goal reset to default");
               // useEffect will sync the slider state after the update
             } catch (error) {
               console.error("Error resetting settings:", error);
-              Alert.alert("Error", "Failed to reset settings. Changes saved locally and will sync when online.");
+              Alert.alert(
+                "Error",
+                "Failed to reset settings. Changes saved locally and will sync when online.",
+              );
             }
           },
         },
@@ -60,11 +65,14 @@ const WaterSettings = () => {
     try {
       // This now saves locally first and syncs to cloud
       await updateHealthProfile({ customWaterGoal: newGoal });
-      console.log('Water goal updated:', newGoal);
+      console.log("Water goal updated:", newGoal);
       Alert.alert("Success", "Water goal updated!");
     } catch (error) {
       console.error("Error confirming water amount:", error);
-      Alert.alert("Notice", "Water goal saved locally and will sync when online.");
+      Alert.alert(
+        "Notice",
+        "Water goal saved locally and will sync when online.",
+      );
     }
   };
 
@@ -72,17 +80,17 @@ const WaterSettings = () => {
     <ScreenBackgroundWrapper>
       <View className="pt-10 gap-28">
         <View className="gap-12 px-5">
-          <Text className="text-white text-sm font-poppins">
+          <Text className="text-light-primary dark:text-dark-primary text-sm font-poppins">
             Do you feel like your calculated amount of water is not enough or
             too much for you?
           </Text>
-          <Text className="text-white text-sm font-poppins">
+          <Text className="text-light-primary dark:text-dark-primary text-sm font-poppins">
             Change you recommended amount here:
           </Text>
         </View>
 
         <View className=" gap-8 px-5 w-full">
-          <Text className="text-white text-md font-poppins-semibold text-center">
+          <Text className="text-light-primary dark:text-dark-primary text-md font-poppins-semibold text-center">
             Daily goal
           </Text>
           <View className="w-full">
@@ -94,7 +102,7 @@ const WaterSettings = () => {
                   { translateX: `${(sliderState / maxValue) * -100}%` },
                 ],
               }}
-              className="text-white text-sm font-poppins-semibold"
+              className="text-light-primary dark:text-dark-primary text-sm font-poppins-semibold"
             >
               {sliderState.toFixed(1) + "L"}
             </Text>
@@ -104,14 +112,14 @@ const WaterSettings = () => {
               minimumValue={0}
               maximumValue={maxValue}
               minimumTrackTintColor={constantColors.accent}
-              maximumTrackTintColor={darkColors.secondary}
+              maximumTrackTintColor={colors.secondary}
             />
           </View>
         </View>
 
         <View className="gap-[2px]">
           <TouchableOpacity
-            className="bg-dark-secondary px-5 py-6"
+            className="bg-light-secondary dark:bg-dark-secondary px-5 py-6"
             onPress={resetToDefault}
           >
             <Text className="text-red-600 font-poppins text-center">
@@ -119,10 +127,10 @@ const WaterSettings = () => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className="bg-dark-secondary px-5 py-6"
+            className="bg-light-secondary dark:bg-dark-secondary px-5 py-6"
             onPress={confirmWaterAmount}
           >
-            <Text className="text-dark-accent font-poppins text-center">
+            <Text className="text-light-accent dark:text-dark-accent font-poppins text-center">
               Confirm new water amount
             </Text>
           </TouchableOpacity>

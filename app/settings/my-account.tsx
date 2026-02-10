@@ -32,10 +32,10 @@ const MyAccount = () => {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
       };
-      
+
       // This now saves locally and queues cloud sync
       await useUserStore.getState().updateUserProfile(updates);
-      
+
       // Update local state
       setEmail(updates.email);
       setFirstName(updates.firstName);
@@ -111,49 +111,49 @@ const MyAccount = () => {
     <ScreenBackgroundWrapper>
       <Section className="mt-[2px]">
         <SettingsRow showHR>
-          <Text className="text-white text-[15px] font-poppins-medium">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
             Email
           </Text>
-          <Text className="text-white text-[15px] font-poppins-semibold">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-semibold">
             {email}
           </Text>
         </SettingsRow>
         <SettingsRow showHR>
-          <Text className="text-white text-[15px] font-poppins-medium">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
             First name
           </Text>
-          <Text className="text-white text-[15px] font-poppins-semibold">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-semibold">
             {firstName}
           </Text>
         </SettingsRow>
         <SettingsRow showHR>
-          <Text className="text-white text-[15px] font-poppins-medium">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
             Last name
           </Text>
-          <Text className="text-white text-[15px] font-poppins-semibold">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-semibold">
             {lastName}
           </Text>
         </SettingsRow>
         <SettingsRow showHR>
-          <Text className="text-white text-[15px] font-poppins-medium">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
             Unit system
           </Text>
-          <Text className="text-white text-[15px] font-poppins-semibold">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-semibold">
             {unitSystem}
           </Text>
         </SettingsRow>
         <SettingsRow>
-          <Text className="text-white text-[15px] font-poppins-medium">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-medium">
             Language
           </Text>
-          <Text className="text-white text-[15px] font-poppins-semibold">
+          <Text className="text-light-primary dark:text-dark-primary text-[15px] font-poppins-semibold">
             {language}
           </Text>
         </SettingsRow>
       </Section>
 
       <TouchableOpacity
-        className="bg-dark-secondary p-5 mt-10"
+        className="bg-light-secondary dark:bg-dark-secondary p-5 mt-10"
         onPress={handleDeleteAccount}
         disabled={loading}
       >
@@ -164,9 +164,9 @@ const MyAccount = () => {
 
       <TouchableOpacity
         onPress={handleLogout}
-        className="mx-auto mt-20 p-5 rounded-2xl bg-dark-secondary w-4/5"
+        className="mx-auto mt-20 p-5 rounded-2xl bg-light-secondary dark:bg-dark-secondary w-4/5"
       >
-        <Text className="text-[20px] font-poppins-medium text-center text-dark-accent">
+        <Text className="text-[20px] font-poppins-medium text-center text-light-accent dark:text-dark-accent">
           Log out
         </Text>
       </TouchableOpacity>

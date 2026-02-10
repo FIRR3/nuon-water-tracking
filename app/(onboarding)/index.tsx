@@ -22,7 +22,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import Animated, {
   FadeIn,
@@ -34,7 +34,6 @@ import Animated, {
 import { scale } from "react-native-size-matters";
 import Arrow from "../../assets/images/arrow.svg";
 import Underline1 from "../../assets/images/underline.svg";
-
 
 import Image1 from "../../assets/images/water-drinking.svg";
 
@@ -237,7 +236,7 @@ export default function OnboardingScreen() {
           <View className="w-full flex-col gap-5 mb-10">
             <Animated.View
               entering={FadeInDown.delay(300).duration(1000).springify()}
-              className="bg-dark-secondary p-5 rounded-lg flex-row justify-between"
+              className="bg-light-secondary dark:bg-dark-secondary p-5 rounded-lg flex-row justify-between"
             >
               <TextInput
                 value={weight}
@@ -248,7 +247,7 @@ export default function OnboardingScreen() {
                 returnKeyType="next"
                 onSubmitEditing={() => !height && heightRef.current?.focus()}
                 maxLength={5}
-                className="text-white font-poppins w-[90%]"
+                className="text-light-primary dark:text-white font-poppins w-[90%]"
               />
               <Text style={{ color: "gray" }} className="font-poppins">
                 kg
@@ -257,7 +256,7 @@ export default function OnboardingScreen() {
 
             <Animated.View
               entering={FadeInDown.delay(400).duration(1000).springify()}
-              className="bg-dark-secondary p-5 rounded-lg flex-row justify-between"
+              className="bg-light-secondary dark:bg-dark-secondary p-5 rounded-lg flex-row justify-between"
             >
               <TextInput
                 ref={heightRef}
@@ -269,7 +268,7 @@ export default function OnboardingScreen() {
                 returnKeyType="next"
                 onSubmitEditing={() => !gender && toggleGenderPicker()}
                 maxLength={3}
-                className="text-white font-poppins w-[90%]"
+                className="text-light-primary dark:text-white font-poppins w-[90%]"
               />
               <Text style={{ color: "gray" }} className=" font-poppins">
                 cm
@@ -306,14 +305,14 @@ export default function OnboardingScreen() {
                   onPress={cancelGender}
                 >
                   <Pressable
-                    className="bg-dark-secondary rounded-t-3xl"
+                    className="bg-light-secondary dark:bg-dark-secondary rounded-t-3xl"
                     onPress={(e) => e.stopPropagation()}
                   >
                     {/* Wheel Picker Container */}
                     <View className="h-[280px] overflow-hidden">
                       {/* Center selection indicator */}
-                      <View className="absolute top-[50%] left-0 right-0 h-[60px] mt-[-30px] border-t border-b border-gray-500/30 bg-dark-accent/10" />
-                      
+                      <View className="absolute top-[50%] left-0 right-0 h-[60px] mt-[-30px] border-t border-b border-gray-500/30 bg-light-accent/10 dark:bg-dark-accent/10" />
+
                       {/* Scrollable options */}
                       <View className="h-full justify-center">
                         {/* Top padding item */}
@@ -322,7 +321,7 @@ export default function OnboardingScreen() {
                             {" "}
                           </Text>
                         </View>
-                        
+
                         {/* Select Gender */}
                         <TouchableOpacity
                           onPress={() => setTempGender("")}
@@ -392,7 +391,7 @@ export default function OnboardingScreen() {
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={confirmGender}
-                        className="flex-1 bg-dark-accent py-3 px-4 rounded-xl"
+                        className="flex-1 bg-light-accent dark:bg-dark-accent py-3 px-4 rounded-xl"
                       >
                         <Text className="text-white text-center text-md font-poppins-medium">
                           Confirm
@@ -419,7 +418,7 @@ export default function OnboardingScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={confirmGender}
-                  className="flex-1 bg-dark-accent py-[12px] px-4 rounded-xl"
+                  className="flex-1 bg-light-accent dark:bg-dark-accent py-[12px] px-4 rounded-xl"
                 >
                   <Text className="text-white text-center text-md font-poppins-medium">
                     Confirm
@@ -431,7 +430,7 @@ export default function OnboardingScreen() {
             {!showGenderPicker && (
               <Animated.View
                 entering={FadeInDown.delay(500).duration(1000).springify()}
-                className="bg-dark-secondary p-5 rounded-lg w-full"
+                className="bg-light-secondary dark:bg-dark-secondary p-5 rounded-lg w-full"
               >
                 <Pressable onPress={toggleGenderPicker}>
                   <TextInput
@@ -441,7 +440,7 @@ export default function OnboardingScreen() {
                     placeholderTextColor={"gray"}
                     editable={false}
                     onPressIn={toggleGenderPicker}
-                    className="text-white font-poppins w-full"
+                    className="text-light-primary dark:text-white font-poppins w-full"
                     submitBehavior="blurAndSubmit"
                   />
                 </Pressable>
@@ -536,16 +535,16 @@ export default function OnboardingScreen() {
                       style={{ position: "absolute" }}
                     />
                   )}
-                  <Text className="text-white text-sm font-poppins-semibold">
+                  <Text className="text-light-primary dark:text-white text-sm font-poppins-semibold">
                     {option.id}
                   </Text>
-                  <Text className="text-white text-sm font-poppins">
+                  <Text className="text-light-primary dark:text-white text-sm font-poppins">
                     {option.description}
                   </Text>
                 </TouchableOpacity>
 
                 {index !== lifestyleOptions.length - 1 && (
-                  <View className="bg-white h-[1px]"></View>
+                  <View className="bg-light-primary/15 dark:bg-white/15 h-[1px]"></View>
                 )}
               </React.Fragment>
             ))}
