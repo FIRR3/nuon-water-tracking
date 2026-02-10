@@ -17,7 +17,12 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.benjiboy160.nuonwatertracking",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to your water tracking device to automatically log your water intake.",
+        "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to connect to your water tracking device to automatically log your water intake.",
+        "UIBackgroundModes": [
+          "bluetooth-central"
+        ]
       }
     },
     "android": {
@@ -64,7 +69,15 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": true,
+          "modes": ["peripheral", "central"],
+          "bluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to your water tracking device to automatically log your water intake."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

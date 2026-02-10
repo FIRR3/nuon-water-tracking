@@ -4,6 +4,7 @@ import { useUserStore } from '@/hooks/useUserStore';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useState } from 'react';
 import { Alert, PermissionsAndroid, Platform, View } from 'react-native';
+import { BleManager } from 'react-native-ble-plx';
 
 export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
   const [currentWeight, setCurrentWeight] = useState(0);
@@ -32,7 +33,7 @@ export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
           granted['android.permission.BLUETOOTH_SCAN'] === PermissionsAndroid.RESULTS.GRANTED &&
           granted['android.permission.BLUETOOTH_CONNECT'] === PermissionsAndroid.RESULTS.GRANTED
         ) {
-          console.log('All permissions granted');
+          console.log('All Android permissions granted');
           return true;
         } else {
           setStatus('Permissions denied');
@@ -44,6 +45,39 @@ export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
         setStatus('Permission error');
         return false;
       }
+    } else if (Platform.OS === 'ios') {
+      // iOS: Check Bluetooth state (permissions are requested automatically)
+      const manager = new BleManager();
+      return new Promise((resolve) => {
+        const subscription = manager.onStateChange((state) => {
+          console.log('iOS Bluetooth state:', state);
+          subscription.remove();
+          
+          if (state === 'PoweredOn') {
+            console.log('iOS Bluetooth ready');
+            resolve(true);
+          } else if (state === 'PoweredOff') {
+            setStatus('Bluetooth is off');
+            Alert.alert(
+              'Bluetooth Required',
+              'Please enable Bluetooth in Settings to connect to your water tracking device.',
+              [{ text: 'OK' }]
+            );
+            resolve(false);
+          } else if (state === 'Unauthorized') {
+            setStatus('Bluetooth permission denied');
+            Alert.alert(
+              'Bluetooth Permission Required',
+              'Please enable Bluetooth permission in Settings > Nuon Water Tracking.',
+              [{ text: 'OK' }]
+            );
+            resolve(false);
+          } else {
+            setStatus(`Bluetooth unavailable: ${state}`);
+            resolve(false);
+          }
+        }, true); // true = emit current state immediately
+      });
     }
     return true;
   };
