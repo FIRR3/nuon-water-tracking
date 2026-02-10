@@ -18,7 +18,8 @@ export const OfflineIndicator: React.FC = () => {
   // Daily summaries are automatic side effects, so don't count them separately
   const totalPending = pendingSyncCount + pendingEditsCount;
 
-  if (isOnline && totalPending === 0) {
+  // Only show indicator when offline - hide during online syncing to avoid annoying flashes
+  if (isOnline) {
     return null;
   }
 

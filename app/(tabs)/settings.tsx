@@ -314,9 +314,9 @@ const Settings = () => {
             </Text>
           </SettingsRow>
         </Section>
-
-        {/* Sync Status Section */}
-        {totalPending > 0 && (
+        
+        {/* Sync Status Section - Only show when offline AND has pending items */}
+        {!isOnline && totalPending > 0 && (
           <Section rounded title="Sync Status">
             <View className="p-4">
               <Text className="text-light-primary dark:text-dark-primary text-sm font-poppins mb-2">

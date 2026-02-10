@@ -1,7 +1,9 @@
 import NetInfo from '@react-native-community/netinfo';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { dailySummariesAPI, waterIntakeAPI } from '../services/appwriteService';
-import { getDailySummariesRange, getWaterHistory } from '../services/storage';
+import { DailySummariesOfflineService } from '../services/dailySummariesOfflineService';
+import type { DailySummariesCache, WaterHistory } from '../services/storage';
+import { clearOldDailySummaries, getDailySummariesRange, getWaterHistory, saveDailySummaries, saveWaterHistory } from '../services/storage';
 import { verifyAndFixDailySummary } from '../utils/dailySummaryMaintenance';
 import { useUserStore } from './useUserStore';
 
@@ -22,6 +24,20 @@ export interface WeeklyDataPoint {
   topLabelComponent?: () => React.ReactElement;
 }
 
+export interface DailyDataPoint {
+  date: string; // YYYY-MM-DD
+  value: number;
+  dayLabel: string; // Mo, Tu, We, etc.
+  dayOfWeek: number; // 0-6
+}
+
+export interface WeekData {
+  weekIndex: number; // 0 = current week, 1 = last week, etc.
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  days: WeeklyDataPoint[];
+}
+
 export interface StreakData {
   currentStreak: number;
   todayProgress: number;
@@ -30,7 +46,9 @@ export interface StreakData {
 
 export interface StatisticsData {
   hourlyData: HourlyDataPoint[];
-  weeklyData: WeeklyDataPoint[];
+  weeklyData: WeeklyDataPoint[]; // Legacy - current week only
+  weeks: WeekData[]; // NEW - multiple weeks
+  allDays: DailyDataPoint[]; // All days since account creation
   streakData: StreakData;
   currentWaterIntake: number;
   todayLogs: { amount: number; timestamp: string }[];
@@ -38,6 +56,9 @@ export interface StatisticsData {
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  loadMoreDays: () => Promise<void>;
+  hasMoreDays: boolean;
+  accountCreatedAt: string | null;
 }
 
 /**
@@ -48,6 +69,8 @@ export const useStatisticsData = (): StatisticsData => {
   const { authUser, recommendedIntake, userHealthProfile } = useUserStore();
   const [hourlyData, setHourlyData] = useState<HourlyDataPoint[]>([]);
   const [weeklyData, setWeeklyData] = useState<WeeklyDataPoint[]>([]);
+  const [weeks, setWeeks] = useState<WeekData[]>([]);
+  const [allDays, setAllDays] = useState<DailyDataPoint[]>([]);
   const [streakData, setStreakData] = useState<StreakData>({
     currentStreak: 0,
     todayProgress: 0,
@@ -58,11 +81,272 @@ export const useStatisticsData = (): StatisticsData => {
   const [isOnline, setIsOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadedDaysCount, setLoadedDaysCount] = useState(14); // Start with 14 days (2 weeks)
+  const [hasMoreDays, setHasMoreDays] = useState(true);
+  const [accountCreatedAt, setAccountCreatedAt] = useState<string | null>(null);
 
   const waterGoal = userHealthProfile?.customWaterGoal || recommendedIntake || 2400;
+  
+  // Throttling for storage updates
+  const storageUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingStorageUpdateRef = useRef<{
+    summaries?: DailySummariesCache;
+    waterHistory?: WaterHistory;
+  } | null>(null);
+  
+  // Offline service instance
+  const offlineServiceRef = useRef<DailySummariesOfflineService>(new DailySummariesOfflineService());
 
   /**
-   * Fetch today's water intake data (hourly breakdown)
+   * Throttled storage update - batches updates and executes after delay
+   * Ensures updates eventually happen but prevents excessive writes
+   */
+  const scheduleStorageUpdate = async (updates: {
+    summaries?: DailySummariesCache;
+    waterHistory?: WaterHistory;
+  }) => {
+    // Merge with pending updates
+    if (!pendingStorageUpdateRef.current) {
+      pendingStorageUpdateRef.current = {};
+    }
+    
+    if (updates.summaries) {
+      pendingStorageUpdateRef.current.summaries = {
+        ...pendingStorageUpdateRef.current.summaries,
+        ...updates.summaries,
+      };
+    }
+    
+    if (updates.waterHistory) {
+      pendingStorageUpdateRef.current.waterHistory = {
+        ...pendingStorageUpdateRef.current.waterHistory,
+        ...updates.waterHistory,
+      };
+    }
+    
+    // Clear existing timeout
+    if (storageUpdateTimeoutRef.current) {
+      clearTimeout(storageUpdateTimeoutRef.current);
+    }
+    
+    // Schedule new update (throttled by 2 seconds)
+    storageUpdateTimeoutRef.current = setTimeout(async () => {
+      const toUpdate = pendingStorageUpdateRef.current;
+      pendingStorageUpdateRef.current = null;
+      
+      if (!toUpdate) return;
+      
+      try {
+        if (toUpdate.summaries) {
+          await saveDailySummaries(toUpdate.summaries);
+          console.log('💾 Saved', Object.keys(toUpdate.summaries).length, 'daily summaries to local storage');
+        }
+        
+        if (toUpdate.waterHistory) {
+          await saveWaterHistory(toUpdate.waterHistory);
+          console.log('💾 Saved water history to local storage');
+        }
+      } catch (error) {
+        console.error('Error saving to local storage:', error);
+      }
+    }, 2000); // 2 second throttle
+  };
+
+  /**
+   * Check if a date has pending offline edits that should not be overwritten
+   */
+  const hasOfflineEditsForDate = async (date: string): Promise<boolean> => {
+    const queue = await offlineServiceRef.current.getOfflineQueue();
+    return queue.some(item => item.date === date);
+  };
+
+  /**
+   * Get account creation date from authUser
+   */
+  const getAccountCreationDate = (): Date => {
+    if (authUser?.$createdAt) {
+      return new Date(authUser.$createdAt);
+    }
+    // Fallback to a very old date if not available
+    return new Date('2020-01-01');
+  };
+
+  /**
+   * Calculate week start and end dates based on current day
+   * Week ends on current day and starts 6 days before
+   */
+  const getWeekDates = (weekOffset: number = 0): { startDate: Date; endDate: Date } => {
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+    // Move back by weekOffset weeks (7 days per week)
+    endDate.setDate(endDate.getDate() - (weekOffset * 7));
+    
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - 6);
+    startDate.setHours(0, 0, 0, 0);
+    
+    return { startDate, endDate };
+  };
+
+  /**
+   * Fetch water data for multiple weeks
+   */
+  const fetchMultipleWeeksData = async (numWeeks: number): Promise<{ date: string; amount: number; timestamp: string }[]> => {
+    if (!authUser?.$id) return [];
+
+    const accountCreation = getAccountCreationDate();
+    const { startDate: currentWeekStart } = getWeekDates(0);
+    const { startDate: oldestWeekStart } = getWeekDates(numWeeks - 1);
+    
+    // Don't fetch data before account creation
+    const fetchStartDate = oldestWeekStart < accountCreation ? accountCreation : oldestWeekStart;
+    const fetchEndDate = new Date();
+    fetchEndDate.setHours(23, 59, 59, 999); // Ensure we include the full current day
+
+    try {
+      // Try to fetch daily summaries from cloud
+      const summaries = await dailySummariesAPI.getDateRange(authUser.$id, fetchStartDate, fetchEndDate);
+      console.log('✅ Fetched', summaries.length, 'daily summaries for', numWeeks, 'weeks');
+      
+      // Save fetched summaries to local storage (preserving offline edits)
+      const summariesToCache: DailySummariesCache = {};
+      for (const summary of summaries) {
+        const summaryDate = new Date(summary.date);
+        const dateKey = summaryDate.toISOString();
+        
+        // Check if this date has pending offline edits
+        const hasOfflineEdits = await hasOfflineEditsForDate(dateKey);
+        
+        if (!hasOfflineEdits) {
+          // Safe to cache - no offline edits pending
+          summariesToCache[dateKey] = {
+            userId: authUser.$id,
+            date: dateKey,
+            totalIntake: summary.totalIntake,
+            goalAmount: summary.goalAmount,
+            numberOfDrinks: summary.numberOfDrinks,
+            firstDrink: summary.firstDrink,
+            lastDrink: summary.lastDrink,
+            updatedAt: summary.updatedAt || new Date().toISOString(),
+            $id: summary.$id,
+          };
+        } else {
+          console.log('⚠️ Skipping cache for', dateKey, '- has pending offline edits');
+        }
+      }
+      
+      // Schedule throttled storage update
+      if (Object.keys(summariesToCache).length > 0) {
+        scheduleStorageUpdate({ summaries: summariesToCache });
+      }
+      
+      // Convert summaries to expected format
+      const result: { date: string; amount: number; timestamp: string }[] = [];
+      
+      // Create a map of dates with summaries
+      const summaryMap = new Map();
+      summaries.forEach(summary => {
+        // Convert UTC timestamp to local date
+        const summaryDate = new Date(summary.date);
+        const year = summaryDate.getFullYear();
+        const month = String(summaryDate.getMonth() + 1).padStart(2, '0');
+        const day = String(summaryDate.getDate()).padStart(2, '0');
+        const localDateStr = `${year}-${month}-${day}`;
+        summaryMap.set(localDateStr, summary);
+      });
+      
+      // Generate all dates in range including today
+      const currentDate = new Date(fetchStartDate);
+      currentDate.setHours(0, 0, 0, 0);
+      const endDateCheck = new Date(fetchEndDate);
+      endDateCheck.setHours(0, 0, 0, 0);
+      
+      while (currentDate <= endDateCheck) {
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        
+        const localMidnight = new Date(year, currentDate.getMonth(), currentDate.getDate(), 0, 0, 0, 0);
+        const midnight = localMidnight.toISOString();
+        
+        if (summaryMap.has(dateStr)) {
+          const summary = summaryMap.get(dateStr);
+          result.push({
+            date: dateStr,
+            amount: summary.totalIntake,
+            timestamp: summary.lastDrink || summary.updatedAt,
+          });
+        } else if (currentDate >= accountCreation) {
+          // Show zero for days after account creation with no data
+          result.push({
+            date: dateStr,
+            amount: 0,
+            timestamp: midnight,
+          });
+        }
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      return result;
+    } catch (error) {
+      console.log('Could not fetch from cloud, using local storage');
+      
+      // Fallback to local storage
+      const startDateStr = fetchStartDate.toISOString().split('T')[0];
+      const endDateStr = fetchEndDate.toISOString().split('T')[0];
+      
+      // Try cached summaries
+      const cachedSummaries = await getDailySummariesRange(authUser.$id, startDateStr, endDateStr);
+      
+      if (cachedSummaries.length > 0) {
+        console.log('✅ Using', cachedSummaries.length, 'cached summaries');
+        return cachedSummaries.map(summary => {
+          // Convert UTC timestamp to local date
+          const summaryDate = new Date(summary.date);
+          const year = summaryDate.getFullYear();
+          const month = String(summaryDate.getMonth() + 1).padStart(2, '0');
+          const day = String(summaryDate.getDate()).padStart(2, '0');
+          const displayDate = `${year}-${month}-${day}`;
+          return {
+            date: displayDate,
+            amount: summary.totalIntake,
+            timestamp: summary.lastDrink || summary.updatedAt,
+          };
+        });
+      }
+      
+      // Final fallback: local history
+      const history = await getWaterHistory();
+      const result: { date: string; amount: number; timestamp: string }[] = [];
+
+      const currentDate = new Date(fetchStartDate);
+      while (currentDate <= fetchEndDate) {
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        const entries = history[dateStr] || [];
+        
+        const dailyTotal = entries.reduce((sum, entry) => sum + entry.amount, 0);
+        
+        if (dailyTotal > 0 || entries.length > 0 || currentDate >= accountCreation) {
+          result.push({
+            date: dateStr,
+            amount: dailyTotal,
+            timestamp: entries[0] ? new Date(entries[0].timestamp).toISOString() : currentDate.toISOString(),
+          });
+        }
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      return result;
+    }
+  };
+
+  /**   * Fetch today's water intake data (hourly breakdown)
    */
   const fetchTodayData = async (): Promise<{ amount: number; timestamp: string }[]> => {
     if (!authUser?.$id) return [];
@@ -71,6 +355,24 @@ export const useStatisticsData = (): StatisticsData => {
       // Try online first
       const logs = await waterIntakeAPI.getToday(authUser.$id);
       console.log('Fetched today data from cloud:', logs.length, 'entries');
+      
+      // Save to local water history
+      const today = new Date().toISOString().split('T')[0];
+      const hasOfflineEdits = await hasOfflineEditsForDate(new Date().toISOString());
+      
+      if (!hasOfflineEdits && logs.length > 0) {
+        const waterHistory = await getWaterHistory();
+        waterHistory[today] = logs.map(log => ({
+          amount: log.amount,
+          timestamp: log.timestamp,
+          userId: authUser.$id,
+          $id: log.$id,
+        }));
+        
+        // Schedule throttled storage update
+        scheduleStorageUpdate({ waterHistory });
+      }
+      
       return logs.map(log => ({
         amount: log.amount,
         timestamp: log.timestamp,
@@ -304,6 +606,137 @@ export const useStatisticsData = (): StatisticsData => {
   };
 
   /**
+   * Process all days data - returns only days since account creation
+   */
+  const processAllDays = (logs: { date: string; amount: number }[], numDays: number): DailyDataPoint[] => {
+    const daysOfWeek = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    const allDaysData: DailyDataPoint[] = [];
+    const accountCreation = getAccountCreationDate();
+
+    // Create a map for quick lookup
+    const logsMap = new Map<string, number>();
+    logs.forEach(log => {
+      logsMap.set(log.date, log.amount);
+    });
+
+    // Generate days from account creation to today
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    
+    const startDate = new Date(accountCreation);
+    startDate.setHours(0, 0, 0, 0);
+    
+    const currentDate = new Date(startDate);
+    
+    // Only process days from account creation to today
+    while (currentDate <= today) {
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(currentDate.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      const dayOfWeek = currentDate.getDay();
+
+      const dailyTotal = logsMap.get(dateStr) || 0;
+
+      allDaysData.push({
+        date: dateStr,
+        value: dailyTotal,
+        dayLabel: daysOfWeek[dayOfWeek],
+        dayOfWeek: dayOfWeek,
+      });
+      
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Check if we've reached account creation
+    if (allDaysData.length > 0) {
+      const oldestDate = new Date(allDaysData[0].date);
+      if (oldestDate <= accountCreation) {
+        setHasMoreDays(false);
+      }
+    }
+
+    return allDaysData;
+  };
+
+  /**
+   * Process multiple weeks data
+   */
+  const processMultipleWeeks = (logs: { date: string; amount: number }[], numWeeks: number): WeekData[] => {
+    const daysOfWeek = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    const weeks: WeekData[] = [];
+    const accountCreation = getAccountCreationDate();
+
+    // Create a map for quick lookup
+    const logsMap = new Map<string, number>();
+    logs.forEach(log => {
+      logsMap.set(log.date, log.amount);
+    });
+
+    // Process each week
+    for (let weekIndex = 0; weekIndex < numWeeks; weekIndex++) {
+      const { startDate, endDate } = getWeekDates(weekIndex);
+      
+      // Check if this week is before account creation
+      if (endDate < accountCreation) {
+        // Stop processing older weeks
+        setHasMoreDays(false);
+        break;
+      }
+
+      const days: WeeklyDataPoint[] = [];
+
+      // Process each day in the week
+      for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + dayOffset);
+        
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        const dayOfWeek = date.getDay();
+
+        // Get amount for this day (0 if no data or before account creation)
+        let dailyTotal = 0;
+        if (date >= accountCreation) {
+          dailyTotal = logsMap.get(dateStr) || 0;
+        }
+
+        days.push({
+          value: dailyTotal,
+          label: daysOfWeek[dayOfWeek],
+        });
+      }
+
+      const startYear = startDate.getFullYear();
+      const startMonth = String(startDate.getMonth() + 1).padStart(2, '0');
+      const startDay = String(startDate.getDate()).padStart(2, '0');
+      const endYear = endDate.getFullYear();
+      const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+      const endDay = String(endDate.getDate()).padStart(2, '0');
+
+      weeks.push({
+        weekIndex,
+        startDate: `${startYear}-${startMonth}-${startDay}`,
+        endDate: `${endYear}-${endMonth}-${endDay}`,
+        days,
+      });
+    }
+
+    // Check if we can load more weeks
+    const oldestWeek = weeks[weeks.length - 1];
+    if (oldestWeek) {
+      const oldestDate = new Date(oldestWeek.startDate);
+      if (oldestDate <= accountCreation) {
+        setHasMoreDays(false);
+      }
+    }
+
+    return weeks;
+  };
+
+  /**
    * Calculate streak data
    */
   const calculateStreakData = (logs: { date: string; amount: number }[]): StreakData => {
@@ -367,23 +800,60 @@ export const useStatisticsData = (): StatisticsData => {
     setError(null);
 
     try {
+      // Set account creation date
+      const accountDate = getAccountCreationDate();
+      setAccountCreatedAt(accountDate.toISOString());
+
       // Check network status
       const netState = await NetInfo.fetch();
       setIsOnline(netState.isConnected && netState.isInternetReachable || false);
+      
+      // Clean up old cached data (keep 30 days)
+      if (netState.isConnected && netState.isInternetReachable) {
+        clearOldDailySummaries(30).catch(err => 
+          console.warn('Failed to clear old summaries:', err)
+        );
+      }
+
+      // Calculate how many days since account creation
+      const today = new Date();
+      const daysSinceCreation = Math.ceil((today.getTime() - accountDate.getTime()) / (1000 * 60 * 60 * 24));
+      const daysToLoad = Math.max(loadedDaysCount, daysSinceCreation + 1); // Include today
 
       // Fetch data in parallel
-      const [todayLogs, weeklyLogs] = await Promise.all([
+      const [todayLogs, allDaysLogs] = await Promise.all([
         fetchTodayData(),
-        fetchWeeklyData(),
+        fetchMultipleWeeksData(Math.ceil(daysToLoad / 7)), // Convert days to weeks for fetching
       ]);
+
+      console.log('📊 All days logs fetched:', allDaysLogs.length, 'days');
+      console.log('📊 Today logs:', todayLogs.length, 'entries');
+      
+      // Log today's data specifically
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todayData = allDaysLogs.find(log => log.date.startsWith(todayStr.substring(0, 10)));
+      console.log('📊 Today\'s data in allDaysLogs:', todayData);
 
       // Process data
       const processedHourlyData = processHourlyData(todayLogs);
       const processedWeeklyData = processWeeklyData(
-        weeklyLogs.map(log => ({ date: log.date, amount: log.amount }))
+        allDaysLogs.map(log => ({ date: log.date, amount: log.amount }))
+      );
+      const processedAllDays = processAllDays(
+        allDaysLogs.map(log => ({ date: log.date, amount: log.amount })),
+        daysToLoad
+      );
+      
+      console.log('📊 Processed all days:', processedAllDays.length, 'days');
+      const todayProcessed = processedAllDays[processedAllDays.length - 1];
+      console.log('📊 Last day in processedAllDays:', todayProcessed);
+      
+      const processedWeeks = processMultipleWeeks(
+        allDaysLogs.map(log => ({ date: log.date, amount: log.amount })),
+        Math.ceil(daysToLoad / 7)
       );
       const processedStreakData = calculateStreakData(
-        weeklyLogs.map(log => ({ date: log.date, amount: log.amount }))
+        allDaysLogs.map(log => ({ date: log.date, amount: log.amount }))
       );
 
       // Calculate current water intake
@@ -393,6 +863,8 @@ export const useStatisticsData = (): StatisticsData => {
       // Update state
       setHourlyData(processedHourlyData);
       setWeeklyData(processedWeeklyData);
+      setAllDays(processedAllDays);
+      setWeeks(processedWeeks);
       setStreakData(processedStreakData);
       setCurrentWaterIntake(currentIntake);
       setTodayLogs(todayLogs);
@@ -401,6 +873,28 @@ export const useStatisticsData = (): StatisticsData => {
       setError(err instanceof Error ? err.message : 'Failed to load statistics');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  /**
+   * Load more days (called when user scrolls to oldest days)
+   */
+  const loadMoreDays = async () => {
+    if (!authUser?.$id || !hasMoreDays) return;
+
+    try {
+      const newDaysCount = loadedDaysCount + 14; // Load 14 more days (2 weeks)
+      const allDaysLogs = await fetchMultipleWeeksData(Math.ceil(newDaysCount / 7));
+      
+      const processedAllDays = processAllDays(
+        allDaysLogs.map(log => ({ date: log.date, amount: log.amount })),
+        newDaysCount
+      );
+
+      setAllDays(processedAllDays);
+      setLoadedDaysCount(newDaysCount);
+    } catch (err) {
+      console.error('Error loading more days:', err);
     }
   };
 
@@ -425,10 +919,31 @@ export const useStatisticsData = (): StatisticsData => {
 
     return () => unsubscribe();
   }, [isOnline]);
+  
+  // Cleanup: Ensure pending storage updates are flushed on unmount
+  useEffect(() => {
+    return () => {
+      if (storageUpdateTimeoutRef.current) {
+        clearTimeout(storageUpdateTimeoutRef.current);
+        // Execute immediately on unmount
+        if (pendingStorageUpdateRef.current) {
+          const toUpdate = pendingStorageUpdateRef.current;
+          if (toUpdate.summaries) {
+            saveDailySummaries(toUpdate.summaries).catch(console.error);
+          }
+          if (toUpdate.waterHistory) {
+            saveWaterHistory(toUpdate.waterHistory).catch(console.error);
+          }
+        }
+      }
+    };
+  }, []);
 
   return {
     hourlyData,
     weeklyData,
+    weeks,
+    allDays,
     streakData,
     currentWaterIntake,
     todayLogs,
@@ -436,5 +951,8 @@ export const useStatisticsData = (): StatisticsData => {
     isLoading,
     error,
     refresh: fetchData,
+    loadMoreDays,
+    hasMoreDays,
+    accountCreatedAt,
   };
 };
