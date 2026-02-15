@@ -44,7 +44,6 @@ const WaterSettings = () => {
             try {
               // This now saves locally first and syncs to cloud
               await updateHealthProfile({ customWaterGoal: null });
-              console.log("Water goal reset to default");
               // useEffect will sync the slider state after the update
             } catch (error) {
               console.error("Error resetting settings:", error);
@@ -65,7 +64,6 @@ const WaterSettings = () => {
     try {
       // This now saves locally first and syncs to cloud
       await updateHealthProfile({ customWaterGoal: newGoal });
-      console.log("Water goal updated:", newGoal);
       Alert.alert("Success", "Water goal updated!");
     } catch (error) {
       console.error("Error confirming water amount:", error);

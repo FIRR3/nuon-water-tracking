@@ -67,14 +67,12 @@ export class WaterIntakeLogsService {
     try {
       // ALWAYS save to local storage first (dual write pattern)
       await saveToLocalStorage(intAmount);
-      console.log('✅ Saved to local storage:', intAmount);
       
       // Update daily summary (immediately)
       await this.updateDailySummary(userId, intAmount, timestamp, currentGoal);
       
       // Add to offline queue
       await this.addToOfflineQueue(entry);
-      console.log('✅ Added to offline queue:', entry.localId);
 
       // Try to sync immediately
       const cloudEntry = await this.syncSingleEntry(entry);
@@ -82,11 +80,9 @@ export class WaterIntakeLogsService {
       if (cloudEntry) {
         // Success! Remove from queue
         await this.removeFromOfflineQueue(entry.localId);
-        console.log('✅ Synced to cloud immediately:', cloudEntry.$id);
         return cloudEntry;
       } else {
         // Failed, but it's in local storage and queue for retry
-        console.log('⚠️ Cloud sync failed, entry queued for retry:', entry.localId);
         return entry; // Return local entry - ALWAYS return valid entry
       }
     } catch (error) {
@@ -148,11 +144,9 @@ export class WaterIntakeLogsService {
       
       // Save to local cache
       await saveDailySummary(userId, summary);
-      console.log('✅ Updated daily summary:', dateStr, summary.totalIntake, 'ml');
       
       // Queue for cloud sync
       await dailySummariesOfflineService.queueSummaryUpdate(userId, dateStr, summary);
-      console.log('✅ Queued daily summary for sync:', dateStr);
       
       // Try to sync immediately (same pattern as water intake logs)
       const queueEntry = {
@@ -167,10 +161,8 @@ export class WaterIntakeLogsService {
       if (syncSuccess) {
         // Success! Remove from queue
         await dailySummariesOfflineService.removeSummaryFromQueue(userId, dateStr);
-        console.log('✅ Synced daily summary to cloud immediately:', dateStr);
       } else {
         // Failed, but it's queued for retry
-        console.log('⚠️ Cloud sync failed for daily summary, queued for retry:', dateStr);
       }
       
     } catch (error) {
@@ -196,7 +188,6 @@ export class WaterIntakeLogsService {
         entry.timestamp // Pass the original timestamp
       );
       
-      console.log('Successfully synced entry to cloud:', cloudEntry.$id);
       return cloudEntry;
     } catch (error) {
       // Check if it's a network error (offline) vs actual error
@@ -204,7 +195,6 @@ export class WaterIntakeLogsService {
                             error.message?.toLowerCase().includes('fetch');
       
       if (isNetworkError) {
-        console.log('⚠️ Offline - entry will sync when connection restored');
       } else {
         console.error('❌ Failed to sync entry to cloud:', error.message);
       }
@@ -221,7 +211,6 @@ export class WaterIntakeLogsService {
       const queue = await this.getOfflineQueue();
       queue.push(entry);
       await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-      console.log('Added entry to offline queue, total:', queue.length);
       this.notifySyncListeners('queued', queue.length);
     } catch (error) {
       console.error('Error adding to offline queue:', error);
@@ -252,7 +241,6 @@ export class WaterIntakeLogsService {
       const queue = await this.getOfflineQueue();
       const newQueue = queue.filter(entry => entry.localId !== localId);
       await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(newQueue));
-      console.log('Removed entry from offline queue, remaining:', newQueue.length);
       this.notifySyncListeners('synced', newQueue.length);
     } catch (error) {
       console.error('Error removing from offline queue:', error);
@@ -283,7 +271,6 @@ export class WaterIntakeLogsService {
    */
   async syncOfflineQueue() {
     if (this.isSyncing) {
-      console.log('Sync already in progress, skipping');
       return { synced: 0, failed: 0 };
     }
 
@@ -294,19 +281,16 @@ export class WaterIntakeLogsService {
       const queue = await this.getOfflineQueue();
       
       if (queue.length === 0) {
-        console.log('No offline entries to sync');
         this.notifySyncListeners('idle', 0);
         return { synced: 0, failed: 0 };
       }
 
-      console.log(`Starting sync of ${queue.length} offline entries...`);
       let synced = 0;
       let failed = 0;
 
       for (const entry of queue) {
         // Skip if retried too many times
         if (entry.retryCount >= MAX_RETRY_ATTEMPTS) {
-          console.log(`Entry ${entry.localId} exceeded max retries, skipping`);
           failed++;
           continue;
         }
@@ -325,7 +309,6 @@ export class WaterIntakeLogsService {
       }
 
       const remainingQueue = await this.getOfflineQueue();
-      console.log(`Sync complete: ${synced} synced, ${failed} failed, ${remainingQueue.length} remaining`);
       this.notifySyncListeners(remainingQueue.length > 0 ? 'idle' : 'synced', remainingQueue.length);
 
       return { synced, failed };
@@ -354,7 +337,6 @@ export class WaterIntakeLogsService {
   async clearOfflineQueue() {
     try {
       await AsyncStorage.removeItem(OFFLINE_QUEUE_KEY);
-      console.log('Offline queue cleared');
       this.notifySyncListeners('idle', 0);
     } catch (error) {
       console.error('Error clearing offline queue:', error);

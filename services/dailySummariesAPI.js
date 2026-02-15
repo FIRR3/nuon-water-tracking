@@ -145,7 +145,6 @@ export const dailySummariesAPI = {
         } catch (updateError) {
           // If document not found (stale ID), create new
           if (updateError.code === 404 || updateError.message?.includes('could not be found')) {
-            console.log('⚠️ Stale document ID, creating new summary');
             return await this.create(userId, {
               date,
               ...updates,

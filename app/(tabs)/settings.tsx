@@ -53,7 +53,6 @@ const Settings = () => {
       // Check actual permission status
       const { status } = await Notifications.getPermissionsAsync();
       setPermissionStatus(status);
-      console.log("📱 Notification permission status:", status);
     }
     loadNotificationSettings();
   }, []);

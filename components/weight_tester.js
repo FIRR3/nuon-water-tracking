@@ -33,7 +33,6 @@ export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
           granted['android.permission.BLUETOOTH_SCAN'] === PermissionsAndroid.RESULTS.GRANTED &&
           granted['android.permission.BLUETOOTH_CONNECT'] === PermissionsAndroid.RESULTS.GRANTED
         ) {
-          console.log('All Android permissions granted');
           return true;
         } else {
           setStatus('Permissions denied');
@@ -50,11 +49,9 @@ export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
       const manager = new BleManager();
       return new Promise((resolve) => {
         const subscription = manager.onStateChange((state) => {
-          console.log('iOS Bluetooth state:', state);
           subscription.remove();
           
           if (state === 'PoweredOn') {
-            console.log('iOS Bluetooth ready');
             resolve(true);
           } else if (state === 'PoweredOff') {
             setStatus('Bluetooth is off');
@@ -90,21 +87,16 @@ export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
       if (!hasPermissions) return;
 
       setStatus('Scanning for device...');
-      console.log('Starting auto scan...');
       scanAndConnect(
         async (data) => {
           if (!isMounted) return;
 
-          console.log('Processing BLE data:', data);
           const grams = parseWeight(data);
-          console.log('Parsed grams:', grams);
           setCurrentWeight(grams);
 
           // Save to cloud storage via useUserStore
           try {
-            console.log('Saving water intake to cloud:', grams);
             await addWaterIntake(grams, 'bluetooth');
-            console.log('Successfully saved to cloud storage');
             
             // No need to notify parent - store will trigger re-renders
           } catch (error) {

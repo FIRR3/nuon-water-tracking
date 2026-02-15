@@ -20,7 +20,6 @@ const ActivityLevel = () => {
         try {
           // This now saves locally first and syncs to cloud automatically
           await updateHealthProfile({ activityLevel: selectedLifestyle });
-          console.log("Activity level updated:", selectedLifestyle);
         } catch (error) {
           console.error("Error updating activity level:", error);
         }

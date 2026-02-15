@@ -30,12 +30,10 @@ export const useSyncManager = (enabled = true) => {
 
     // Prevent syncing too frequently
     if (timeSinceLastSync < MIN_SYNC_DELAY_MS) {
-      console.log('Skipping sync - too soon since last sync');
       return;
     }
 
     try {
-      console.log('Performing automatic sync...');
       
       // Sync water intake logs and daily summaries in parallel
       const [waterResult, summariesResult] = await Promise.all([
@@ -51,13 +49,6 @@ export const useSyncManager = (enabled = true) => {
       const totalSynced = waterResult.synced + editsResult.synced + summariesResult.synced;
       const totalFailed = waterResult.failed + editsResult.failed + summariesResult.failed;
       
-      if (totalSynced > 0) {
-        console.log(`Auto-sync completed: ${totalSynced} entries synced (${waterResult.synced} water, ${editsResult.synced} edits, ${summariesResult.synced} summaries)`);
-      }
-      
-      if (totalFailed > 0) {
-        console.log(`Auto-sync: ${totalFailed} entries failed, will retry later`);
-      }
 
       // Verify and fix daily summaries to match logs (last 7 days) after both syncs complete
       if (authUser?.$id && (waterResult.synced > 0 || summariesResult.synced > 0)) {
@@ -67,23 +58,17 @@ export const useSyncManager = (enabled = true) => {
         startDate.setDate(startDate.getDate() - 6);
         
         try {
-          console.log('🔍 Verifying summaries match water logs...');
           const fixResult = await verifyAndFixDateRange(authUser.$id, startDate, endDate, currentGoal);
           
           // If summaries were fixed, sync them immediately
           if (fixResult?.fixed > 0) {
-            console.log('🔄 Syncing fixed summaries to cloud...');
             const fixedSyncResult = await dailySummariesOfflineService.syncOfflineQueue();
-            if (fixedSyncResult.synced > 0) {
-              console.log(`✅ Synced ${fixedSyncResult.synced} fixed summaries immediately`);
-            }
           }
         } catch (error) {
           // Don't let verification errors break the sync flow
           const isNetworkError = error.message?.toLowerCase().includes('network') || 
                                 error.message?.toLowerCase().includes('fetch');
           if (isNetworkError) {
-            console.log('⚠️ Could not verify summaries (offline), will verify later');
           } else {
             console.error('❌ Error verifying summaries:', error.message);
           }
@@ -98,11 +83,9 @@ export const useSyncManager = (enabled = true) => {
       
       // Refresh data from cloud after successful sync
       if (totalSynced > 0) {
-        console.log('🔄 Refreshing data after sync...');
         // Access useUserStore to call refreshTodayIntake
         const { refreshTodayIntake } = require('./useUserStore').useUserStore.getState();
         await refreshTodayIntake();
-        console.log('✅ Data refreshed from cloud');
       }
       
     } catch (error) {
@@ -119,7 +102,6 @@ export const useSyncManager = (enabled = true) => {
         appState.current.match(/inactive|background/) &&
         nextAppState === 'active'
       ) {
-        console.log('App has come to foreground - triggering sync');
         performSync();
       }
       appState.current = nextAppState;
@@ -128,7 +110,6 @@ export const useSyncManager = (enabled = true) => {
     // Handle network connectivity changes
     const unsubscribeNetInfo = NetInfo.addEventListener(state => {
       if (state.isConnected && state.isInternetReachable) {
-        console.log('Network connectivity restored - triggering sync');
         performSync();
       }
     });
@@ -136,7 +117,6 @@ export const useSyncManager = (enabled = true) => {
     // Set up periodic sync when app is active
     syncIntervalRef.current = setInterval(() => {
       if (appState.current === 'active') {
-        console.log('Periodic sync triggered');
         performSync();
       }
     }, SYNC_INTERVAL_MS);

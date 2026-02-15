@@ -62,7 +62,6 @@ export default function RootLayout() {
         error?.message?.includes("ExpoAsset.downloadAsync") ||
         error?.message?.includes("downloadAsync")
       ) {
-        console.log("Suppressed asset download error (offline mode)");
         return;
       }
 
@@ -112,10 +111,8 @@ export default function RootLayout() {
       try {
         // Pre-load fonts
         await Font.loadAsync(customFonts);
-        console.log("Fonts loaded successfully");
       } catch (e) {
         // Suppress font loading errors when offline - fonts may already be cached
-        console.log("Font loading skipped (may be offline or already cached)");
         // Continue anyway - fonts are likely already loaded from previous sessions
       } finally {
         setAppIsReady(true);

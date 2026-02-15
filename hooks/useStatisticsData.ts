@@ -139,12 +139,10 @@ export const useStatisticsData = (): StatisticsData => {
       try {
         if (toUpdate.summaries) {
           await saveDailySummaries(toUpdate.summaries);
-          console.log('💾 Saved', Object.keys(toUpdate.summaries).length, 'daily summaries to local storage');
         }
         
         if (toUpdate.waterHistory) {
           await saveWaterHistory(toUpdate.waterHistory);
-          console.log('💾 Saved water history to local storage');
         }
       } catch (error) {
         console.error('Error saving to local storage:', error);
@@ -206,7 +204,6 @@ export const useStatisticsData = (): StatisticsData => {
     try {
       // Try to fetch daily summaries from cloud
       const summaries = await dailySummariesAPI.getDateRange(authUser.$id, fetchStartDate, fetchEndDate);
-      console.log('✅ Fetched', summaries.length, 'daily summaries for', numWeeks, 'weeks');
       
       // Save fetched summaries to local storage (preserving offline edits)
       const summariesToCache: DailySummariesCache = {};
@@ -231,7 +228,7 @@ export const useStatisticsData = (): StatisticsData => {
             $id: summary.$id,
           };
         } else {
-          console.log('⚠️ Skipping cache for', dateKey, '- has pending offline edits');
+
         }
       }
       
@@ -291,7 +288,7 @@ export const useStatisticsData = (): StatisticsData => {
 
       return result;
     } catch (error) {
-      console.log('Could not fetch from cloud, using local storage');
+      console.error('Could not fetch from cloud, using local storage', error);
       
       // Fallback to local storage
       const startDateStr = fetchStartDate.toISOString().split('T')[0];
@@ -301,7 +298,6 @@ export const useStatisticsData = (): StatisticsData => {
       const cachedSummaries = await getDailySummariesRange(authUser.$id, startDateStr, endDateStr);
       
       if (cachedSummaries.length > 0) {
-        console.log('✅ Using', cachedSummaries.length, 'cached summaries');
         return cachedSummaries.map(summary => {
           // Convert UTC timestamp to local date
           const summaryDate = new Date(summary.date);
@@ -354,7 +350,6 @@ export const useStatisticsData = (): StatisticsData => {
     try {
       // Try online first
       const logs = await waterIntakeAPI.getToday(authUser.$id);
-      console.log('Fetched today data from cloud:', logs.length, 'entries');
       
       // Save to local water history
       const today = new Date().toISOString().split('T')[0];
@@ -378,7 +373,6 @@ export const useStatisticsData = (): StatisticsData => {
         timestamp: log.timestamp,
       }));
     } catch (error) {
-      console.log('Could not fetch today data from cloud, using local storage');
       // Fallback to local storage
       const history = await getWaterHistory();
       const today = new Date().toISOString().split('T')[0];
@@ -405,7 +399,6 @@ export const useStatisticsData = (): StatisticsData => {
     try {
       // Try to fetch daily summaries from cloud (MUCH faster!)
       const summaries = await dailySummariesAPI.getDateRange(authUser.$id, startDate, endDate);
-      console.log('✅ Fetched', summaries.length, 'daily summaries from cloud');
       
       // Convert summaries to expected format
       const result: { date: string; amount: number; timestamp: string }[] = [];
@@ -443,7 +436,7 @@ export const useStatisticsData = (): StatisticsData => {
           // Verify summary matches logs (asynchronously in background)
           const currentGoal = userHealthProfile?.customWaterGoal || recommendedIntake || 2400;
           verifyAndFixDailySummary(authUser.$id, midnight, currentGoal).catch(err => 
-            console.log('Could not verify summary:', err)
+            console.error('Could not verify summary:', err)
           );
           
           result.push({
@@ -453,7 +446,6 @@ export const useStatisticsData = (): StatisticsData => {
           });
         } else {
           // No summary - fetch individual logs as fallback
-          console.log('⚠️ No summary for', dateStr, '- fetching logs');
           const logs = await waterIntakeAPI.getDateRange(authUser.$id, localMidnight, localMidnight);
           const dailyTotal = logs.reduce((sum, log) => sum + log.amount, 0);
           
@@ -468,7 +460,7 @@ export const useStatisticsData = (): StatisticsData => {
             // Create summary for this day (asynchronously in background)
             const currentGoal = userHealthProfile?.customWaterGoal || recommendedIntake || 2400;
             verifyAndFixDailySummary(authUser.$id, midnight, currentGoal).catch(err =>
-              console.log('Could not create summary:', err)
+              console.error('Could not create summary:', err)
             );
           }
           // If no logs either, the day will show as 0 (not added to result)
@@ -478,7 +470,6 @@ export const useStatisticsData = (): StatisticsData => {
       return result;
       
     } catch (error) {
-      console.log('Could not fetch from cloud, using local storage');
       
       // Fallback to local storage
       const startDateStr = startDate.toISOString().split('T')[0];
@@ -488,7 +479,6 @@ export const useStatisticsData = (): StatisticsData => {
       const cachedSummaries = await getDailySummariesRange(authUser.$id, startDateStr, endDateStr);
       
       if (cachedSummaries.length > 0) {
-        console.log('✅ Using', cachedSummaries.length, 'cached summaries');
         return cachedSummaries.map(summary => {
           // Extract YYYY-MM-DD from datetime for display
           const displayDate = new Date(summary.date).toISOString().split('T')[0];
@@ -826,13 +816,10 @@ export const useStatisticsData = (): StatisticsData => {
         fetchMultipleWeeksData(Math.ceil(daysToLoad / 7)), // Convert days to weeks for fetching
       ]);
 
-      console.log('📊 All days logs fetched:', allDaysLogs.length, 'days');
-      console.log('📊 Today logs:', todayLogs.length, 'entries');
       
       // Log today's data specifically
       const todayStr = new Date().toISOString().split('T')[0];
       const todayData = allDaysLogs.find(log => log.date.startsWith(todayStr.substring(0, 10)));
-      console.log('📊 Today\'s data in allDaysLogs:', todayData);
 
       // Process data
       const processedHourlyData = processHourlyData(todayLogs);
@@ -844,9 +831,7 @@ export const useStatisticsData = (): StatisticsData => {
         daysToLoad
       );
       
-      console.log('📊 Processed all days:', processedAllDays.length, 'days');
       const todayProcessed = processedAllDays[processedAllDays.length - 1];
-      console.log('📊 Last day in processedAllDays:', todayProcessed);
       
       const processedWeeks = processMultipleWeeks(
         allDaysLogs.map(log => ({ date: log.date, amount: log.amount })),
@@ -912,7 +897,6 @@ export const useStatisticsData = (): StatisticsData => {
 
       // Refresh data when coming back online
       if (wasOffline && isNowOnline) {
-        console.log('Network restored, refreshing statistics...');
         fetchData();
       }
     });

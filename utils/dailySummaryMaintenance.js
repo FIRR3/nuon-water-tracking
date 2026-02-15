@@ -23,7 +23,6 @@ export const createTodaysSummary = async (userId, currentGoal) => {
     // Check if summary already exists
     const existing = await getDailySummary(userId, todayStr);
     if (existing) {
-      console.log('✅ Today\'s summary already exists');
       return existing;
     }
     
@@ -47,7 +46,6 @@ export const createTodaysSummary = async (userId, currentGoal) => {
     // Try to create in cloud
     try {
       const cloudSummary = await dailySummariesAPI.create(userId, newSummary);
-      console.log('✅ Created today\'s summary in cloud');
       
       // Update cache with cloud ID
       newSummary.$id = cloudSummary.$id;
@@ -55,7 +53,6 @@ export const createTodaysSummary = async (userId, currentGoal) => {
       
       return cloudSummary;
     } catch (error) {
-      console.log('⚠️ Could not create summary in cloud, saved locally');
       return newSummary;
     }
     
@@ -79,7 +76,6 @@ export const checkAndCreateMidnightSummary = async (userId, currentGoal) => {
     const summary = await getDailySummary(userId, todayStr);
     
     if (!summary) {
-      console.log('🌙 Creating new summary for today (midnight rollover)');
       await createTodaysSummary(userId, currentGoal);
     }
   } catch (error) {
@@ -94,9 +90,7 @@ export const checkAndCreateMidnightSummary = async (userId, currentGoal) => {
  */
 export const performSummaryCleanup = async (daysToKeep = 30) => {
   try {
-    console.log(`🧹 Cleaning up summaries older than ${daysToKeep} days`);
     await clearOldDailySummaries(daysToKeep);
-    console.log('✅ Summary cleanup complete');
   } catch (error) {
     console.error('Error cleaning up summaries:', error);
   }
@@ -158,11 +152,7 @@ export const verifyAndFixDailySummary = async (userId, date, currentGoal) => {
       existingSummary.totalIntake !== correctTotalIntake ||
       existingSummary.numberOfDrinks !== correctNumberOfDrinks;
     
-    if (needsUpdate) {
-      console.log(`🔧 Fixing daily summary for ${midnightStr}`);
-      console.log(`   Was: ${existingSummary?.totalIntake || 0}ml, ${existingSummary?.numberOfDrinks || 0} drinks`);
-      console.log(`   Now: ${correctTotalIntake}ml, ${correctNumberOfDrinks} drinks`);
-      
+    if (needsUpdate) {      
       // Create corrected summary
       const correctedSummary = {
         userId,
@@ -195,7 +185,6 @@ export const verifyAndFixDailySummary = async (userId, date, currentGoal) => {
           cloudSummary = await dailySummariesAPI.create(userId, correctedSummary);
         }
         
-        console.log('✅ Daily summary fixed in cloud');
         
         // Update cache with cloud ID
         correctedSummary.$id = cloudSummary.$id;
@@ -203,11 +192,10 @@ export const verifyAndFixDailySummary = async (userId, date, currentGoal) => {
         
         return cloudSummary;
       } catch (error) {
-        console.log('⚠️ Could not update summary in cloud, saved locally');
+        console.error('⚠️ Could not update summary in cloud, saved locally');
         return correctedSummary;
       }
     } else {
-      console.log(`✅ Daily summary already correct for ${midnightStr}`);
       return existingSummary;
     }
     
@@ -229,7 +217,6 @@ export const verifyAndFixDateRange = async (userId, startDate, endDate, currentG
   let fixedCount = 0;
   
   try {
-    console.log('🔍 Verifying summaries from', startDate.toISOString().split('T')[0], 'to', endDate.toISOString().split('T')[0]);
     
     // Check each day in range
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
@@ -242,7 +229,6 @@ export const verifyAndFixDateRange = async (userId, startDate, endDate, currentG
       }
     }
     
-    console.log(`✅ Verified ${fixedCount} summaries`);
     return fixedCount;
     
   } catch (error) {

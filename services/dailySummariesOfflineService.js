@@ -101,7 +101,6 @@ export class DailySummariesOfflineService {
           queue[existingIndex] = queueEntry;
         } else {
           // Keep existing (it's newer)
-          console.log('Keeping existing queued summary (newer)');
         }
       } else {
         // Add new entry
@@ -110,7 +109,6 @@ export class DailySummariesOfflineService {
       
       await this.saveOfflineQueue(queue);
       this.notifySyncListeners('queued', queue.length);
-      console.log('✅ Queued summary update for', date, '- Total queued:', queue.length);
       
     } catch (error) {
       console.error('Error queueing summary update:', error);
@@ -139,7 +137,6 @@ export class DailySummariesOfflineService {
         entry.date,
         summaryData
       );
-      console.log('✅ Synced summary to cloud:', entry.date);
       return true;
     } catch (error) {
       // Check if it's a network error (offline) vs actual error
@@ -147,7 +144,7 @@ export class DailySummariesOfflineService {
                             error.message?.toLowerCase().includes('fetch');
       
       if (isNetworkError) {
-        console.log('⚠️ Offline - summary will sync when connection restored:', entry.date);
+        console.error('⚠️ Offline - summary will sync when connection restored:', entry.date);
       } else {
         console.error('❌ Failed to sync summary:', entry.date, error.message);
       }
@@ -161,7 +158,6 @@ export class DailySummariesOfflineService {
    */
   async syncOfflineQueue() {
     if (this.isSyncing) {
-      console.log('Sync already in progress');
       return { synced: 0, failed: 0 };
     }
     
@@ -172,12 +168,10 @@ export class DailySummariesOfflineService {
       const queue = await this.getOfflineQueue();
       
       if (queue.length === 0) {
-        console.log('No summary updates to sync');
         this.isSyncing = false;
         return { synced: 0, failed: 0 };
       }
       
-      console.log(`Syncing ${queue.length} summary update(s)...`);
       
       let synced = 0;
       let failed = 0;
@@ -202,7 +196,6 @@ export class DailySummariesOfflineService {
         remainingQueue.length
       );
       
-      console.log(`Summary sync complete: ${synced} synced, ${failed} failed`);
       
       return { synced, failed };
       
@@ -240,7 +233,6 @@ export class DailySummariesOfflineService {
       if (newQueue.length < queue.length) {
         await this.saveOfflineQueue(newQueue);
         this.notifySyncListeners('synced', newQueue.length);
-        console.log('Removed summary from offline queue, remaining:', newQueue.length);
       }
     } catch (error) {
       console.error('Error removing summary from offline queue:', error);

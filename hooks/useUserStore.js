@@ -47,7 +47,6 @@ export const useUserStore = create((set, get) => ({
       const authUser = await authAPI.getCurrentUser();
       
       // STEP 1: Load cached data IMMEDIATELY for instant UI
-      console.log('📦 Loading cached data first...');
       let userProfile = await getUserProfile();
       let healthProfile = await getHealthProfile();
       
@@ -56,11 +55,9 @@ export const useUserStore = create((set, get) => ({
       const todaySummary = await getTodaysSummary(authUser.$id);
       if (todaySummary) {
         totalToday = todaySummary.totalIntake;
-        console.log('📊 Loaded from daily summary:', totalToday, 'ml');
       } else {
         // Fallback to water history if no summary exists
         totalToday = await getLocalWaterIntake();
-        console.log('📜 Loaded from water history:', totalToday, 'ml');
       }
       
       // If we have cached data, update store immediately
@@ -84,7 +81,6 @@ export const useUserStore = create((set, get) => ({
           isLoading: false,
           isOffline: false // Will update if cloud fetch fails
         });
-        console.log('✅ Loaded cached data - User:', userProfile.firstName, 'Water:', totalToday, 'ml');
       }
       
       // STEP 2: Try to get fresh data from cloud in background
@@ -97,11 +93,9 @@ export const useUserStore = create((set, get) => ({
         // Cache locally for offline use
         await saveUserProfile(userProfile);
         await saveHealthProfile(healthProfile);
-        console.log('Cached user and health profile locally');
         
       } catch (error) {
-        console.log('Could not fetch from cloud, using cached data:', error.message);
-        
+        console.error('Failed to fetch fresh data from cloud:', error.message);
         // Fallback to cached data
         userProfile = await getUserProfile();
         healthProfile = await getHealthProfile();
@@ -134,12 +128,11 @@ export const useUserStore = create((set, get) => ({
       try {
         todayLogs = await waterIntakeAPI.getToday(authUser.$id);
         cloudTotalToday = todayLogs.reduce((sum, log) => sum + log.amount, 0);
-        console.log('Loaded water intake from cloud:', cloudTotalToday);
         
         // Use cloud data as the new total
         totalToday = cloudTotalToday;
       } catch (error) {
-        console.log('Could not fetch cloud data, keeping cached total:', error.message);
+        console.error('Could not fetch cloud data, keeping cached total:', error.message);
         // Keep the cached totalToday we loaded earlier from daily summary
         usedLocalFallback = true;
       }
@@ -177,19 +170,18 @@ export const useUserStore = create((set, get) => ({
             get().refreshTodayIntake();
           }
         }).catch((error) => {
-          console.log('Background sync failed (offline?):', error.message);
+          console.error('Background sync failed (offline?):', error.message);
         });
         
         // Sync edits queue
         offlineEditsService.syncOfflineQueue().then((result) => {
           if (result.synced > 0) {
-            console.log('Synced pending profile edits:', result.synced);
             // Update pending count only - local state is already updated
             const pendingEditsCount = offlineEditsService.getPendingCount();
             pendingEditsCount.then(count => set({ pendingEditsCount: count }));
           }
         }).catch((error) => {
-          console.log('Background edits sync failed (offline?):', error.message);
+          console.error('Background edits sync failed (offline?):', error.message);
         });
       }
       
@@ -270,7 +262,6 @@ export const useUserStore = create((set, get) => ({
     
     // Ensure amount is an integer
     const intAmount = Math.round(amount);
-    console.log('📝 Adding water intake:', intAmount, 'ml, source:', source);
     
     // Get current water goal
     const currentGoal = healthProfile?.customWaterGoal || recommendedIntake || 2400;
@@ -284,7 +275,6 @@ export const useUserStore = create((set, get) => ({
         currentGoal // Pass current goal for summary
       );
       
-      console.log('✅ Water intake service returned:', newLog);
       
       // CRITICAL: Validate newLog before updating state
       if (!newLog || typeof newLog !== 'object') {
@@ -300,13 +290,11 @@ export const useUserStore = create((set, get) => ({
         totalToday: totalToday + intAmount
       });
       
-      console.log('✅ State updated - new total:', totalToday + intAmount);
       
       // Update pending counts
       const pendingSyncCount = await waterIntakeLogsService.getPendingCount();
       const pendingSummaryUpdates = await dailySummariesOfflineService.getPendingCount();
       set({ pendingSyncCount, pendingSummaryUpdates });
-      console.log('📊 Pending sync count:', pendingSyncCount, '| Summary updates:', pendingSummaryUpdates);
       
       // Refresh today's summary from cache
       const summary = await getTodaysSummary(authUser.$id);
@@ -338,7 +326,6 @@ export const useUserStore = create((set, get) => ({
       return;
     }
     
-    console.log('🔄 Refreshing today\'s intake...');
     
     // Try to get cloud data
     let todayLogs = [];
@@ -348,7 +335,6 @@ export const useUserStore = create((set, get) => ({
     try {
       todayLogs = await waterIntakeAPI.getToday(authUser.$id);
       totalToday = todayLogs.reduce((sum, log) => sum + log.amount, 0);
-      console.log('✅ Refreshed from cloud:', totalToday, 'ml');
       
       // Update local cache with fresh cloud data
       const today = new Date();
@@ -360,18 +346,15 @@ export const useUserStore = create((set, get) => ({
         cachedSummary.totalIntake = totalToday;
         cachedSummary.numberOfDrinks = todayLogs.length;
         await saveDailySummary(authUser.$id, cachedSummary);
-        console.log('💾 Updated cached summary:', totalToday, 'ml');
       }
     } catch (error) {
-      console.log('Could not fetch from cloud, using cached data:', error.message);
+      console.error('Could not fetch from cloud, using cached data:', error.message);
       // Fallback to daily summary (source of truth) or water history
       const todaySummary = await getTodaysSummary(authUser.$id);
       if (todaySummary) {
         totalToday = todaySummary.totalIntake;
-        console.log('Refreshed from daily summary:', totalToday);
       } else {
         totalToday = await getLocalWaterIntake();
-        console.log('Refreshed from water history:', totalToday);
       }
       usedLocalFallback = true;
     }
@@ -398,7 +381,6 @@ export const useUserStore = create((set, get) => ({
       lastRefreshTime: Date.now() // Force state change for React
     });
     
-    console.log('✅ Store updated with totalToday:', totalToday, 'ml');
   },
 
   syncOfflineData: async () => {

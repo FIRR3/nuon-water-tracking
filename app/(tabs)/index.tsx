@@ -148,13 +148,11 @@ export default function Index() {
   useEffect(() => {
     // Set userName with fallback to "there" if firstName is not available
     const name = userProfile?.firstName || "there";
-    console.log("👤 Setting userName:", name, "from userProfile:", userProfile);
     setUserName(name);
   }, [userProfile]);
 
   // Sync currentWaterIntake with totalToday from store
   useEffect(() => {
-    console.log("💧 Updating currentWaterIntake:", totalToday);
     setCurrentWaterIntake(totalToday || 0);
   }, [totalToday]);
 
@@ -167,7 +165,6 @@ export default function Index() {
   const refreshWaterIntake = async () => {
     try {
       await refreshTodayIntake();
-      console.log("Refreshed water intake from cloud:", totalToday);
     } catch (error) {
       console.error("Error refreshing water intake:", error);
     }
@@ -178,7 +175,6 @@ export default function Index() {
     const loadSettings = async () => {
       try {
         const settings = await getUserSettings();
-        console.log("Loaded settings from local storage:", settings);
         setUserSettings(settings);
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -196,17 +192,11 @@ export default function Index() {
   );
 
   const updateWaterIntake = async (value: number) => {
-    console.log("🔄 updateWaterIntake called with value:", value);
     try {
       if (value !== 0) {
         // Use cloud storage via useUserStore
         const result = await addWaterIntakeToCloud(value, "manual");
-        console.log(
-          "✅ Successfully updated water intake:",
-          value,
-          "result:",
-          result,
-        );
+        
       }
     } catch (error) {
       console.error("❌ Error updating water intake:", error);
@@ -224,7 +214,6 @@ export default function Index() {
     if (pendingSyncCount > 0) {
       try {
         await syncOfflineData();
-        console.log("Synced offline data during refresh");
       } catch (error) {
         console.error("Error syncing offline data:", error);
       }

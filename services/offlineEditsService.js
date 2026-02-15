@@ -62,7 +62,6 @@ export class OfflineEditsService {
         const profile = JSON.parse(currentProfile);
         const updatedProfile = { ...profile, ...updates };
         await saveUserProfile(updatedProfile);
-        console.log('Updated user profile cache:', updatedProfile);
       }
 
       // Add to offline queue
@@ -75,7 +74,6 @@ export class OfflineEditsService {
         await this.removeFromQueue(edit.localId);
         return true;
       } else {
-        console.log('User profile edit queued for later sync');
         return false;
       }
     } catch (error) {
@@ -106,7 +104,6 @@ export class OfflineEditsService {
         const profile = JSON.parse(currentProfile);
         const updatedProfile = { ...profile, ...updates };
         await saveHealthProfile(updatedProfile);
-        console.log('Updated health profile cache:', updatedProfile);
       }
 
       // Add to offline queue
@@ -119,7 +116,6 @@ export class OfflineEditsService {
         await this.removeFromQueue(edit.localId);
         return true;
       } else {
-        console.log('Health profile edit queued for later sync');
         return false;
       }
     } catch (error) {
@@ -137,11 +133,9 @@ export class OfflineEditsService {
     try {
       if (edit.type === 'user_profile') {
         await userProfileAPI.update(edit.userId, edit.data);
-        console.log('Successfully synced user profile edit to cloud');
         return true;
       } else if (edit.type === 'health_profile') {
         await healthProfileAPI.updateByUserId(edit.userId, edit.data);
-        console.log('Successfully synced health profile edit to cloud');
         return true;
       }
       return false;
@@ -151,7 +145,6 @@ export class OfflineEditsService {
                             error.message?.toLowerCase().includes('fetch');
       
       if (isNetworkError) {
-        console.log('⚠️ Offline - edit will sync when connection restored');
       } else {
         console.error('❌ Failed to sync edit to cloud:', error.message);
       }
@@ -168,7 +161,6 @@ export class OfflineEditsService {
       const queue = await this.getQueue();
       queue.push(edit);
       await AsyncStorage.setItem(OFFLINE_EDITS_QUEUE_KEY, JSON.stringify(queue));
-      console.log('Added edit to offline queue, total:', queue.length);
       this.notifySyncListeners('queued', queue.length);
     } catch (error) {
       console.error('Error adding to offline queue:', error);
@@ -199,7 +191,6 @@ export class OfflineEditsService {
       const queue = await this.getQueue();
       const newQueue = queue.filter(edit => edit.localId !== localId);
       await AsyncStorage.setItem(OFFLINE_EDITS_QUEUE_KEY, JSON.stringify(newQueue));
-      console.log('Removed edit from queue, remaining:', newQueue.length);
       this.notifySyncListeners('synced', newQueue.length);
     } catch (error) {
       console.error('Error removing from queue:', error);
@@ -230,7 +221,6 @@ export class OfflineEditsService {
    */
   async syncOfflineQueue() {
     if (this.isSyncing) {
-      console.log('Sync already in progress, skipping');
       return { synced: 0, failed: 0 };
     }
 
@@ -241,19 +231,16 @@ export class OfflineEditsService {
       const queue = await this.getQueue();
       
       if (queue.length === 0) {
-        console.log('No offline edits to sync');
         this.notifySyncListeners('idle', 0);
         return { synced: 0, failed: 0 };
       }
 
-      console.log(`Starting sync of ${queue.length} offline edits...`);
       let synced = 0;
       let failed = 0;
 
       for (const edit of queue) {
         // Skip if retried too many times
         if (edit.retryCount >= MAX_RETRY_ATTEMPTS) {
-          console.log(`Edit ${edit.localId} exceeded max retries, skipping`);
           failed++;
           continue;
         }
@@ -272,7 +259,6 @@ export class OfflineEditsService {
       }
 
       const remainingQueue = await this.getQueue();
-      console.log(`Sync complete: ${synced} synced, ${failed} failed, ${remainingQueue.length} remaining`);
       this.notifySyncListeners(remainingQueue.length > 0 ? 'idle' : 'synced', remainingQueue.length);
 
       return { synced, failed };
@@ -301,7 +287,6 @@ export class OfflineEditsService {
   async clearQueue() {
     try {
       await AsyncStorage.removeItem(OFFLINE_EDITS_QUEUE_KEY);
-      console.log('Offline edits queue cleared');
       this.notifySyncListeners('idle', 0);
     } catch (error) {
       console.error('Error clearing queue:', error);
