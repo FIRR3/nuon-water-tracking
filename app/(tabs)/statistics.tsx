@@ -87,7 +87,7 @@ const Statistics = () => {
   const chartInnerPadding = scale(20) * 2; // px-5 on inner container = scale(20)
   const totalPadding = chartContainerPadding + chartInnerPadding;
   const availableWidth = screenWidth - totalPadding;
-  const barSpacing = scale(11);
+  const barSpacing = scale(10.5);
   const totalSpacing = barSpacing * 6; // 6 spaces between 7 bars
   const barWidth = (availableWidth - totalSpacing) / 7;
   const barTotalWidth = barWidth + barSpacing; // bar width + spacing
@@ -127,25 +127,36 @@ const Statistics = () => {
   // Handle scroll to update date range and load more
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-    // Calculate first visible day based on scroll position
-    const firstVisibleIndex = Math.round(offsetX / barTotalWidth);
-    const lastVisibleIndex = Math.min(
-      firstVisibleIndex + 6,
-      allDays.length - 1,
-    ); // 7 days visible
+    
+    // Calculate padding that was added to the first week (only if 7+ days old)
+    const totalDays = allDays.length;
+    const firstWeekDays = totalDays % 7 || 7;
+    const paddingNeeded = (totalDays >= 7 && firstWeekDays < 7) ? 7 - firstWeekDays : 0;
+    
+    // Calculate first visible bar index (including padding)
+    const firstVisibleBarIndex = Math.round(offsetX / barTotalWidth);
+    
+    // Adjust for padding to get the actual day index
+    const firstVisibleDayIndex = Math.max(0, firstVisibleBarIndex - paddingNeeded);
+    
+    // If we're viewing the first week with padding, only show the actual days (not the padding)
+    const isViewingFirstWeek = firstVisibleBarIndex < 7;
+    const lastVisibleDayIndex = isViewingFirstWeek && paddingNeeded > 0
+      ? Math.min(firstWeekDays - 1, allDays.length - 1)
+      : Math.min(firstVisibleDayIndex + 6, allDays.length - 1);
 
     if (
       allDays.length > 0 &&
-      firstVisibleIndex >= 0 &&
-      lastVisibleIndex < allDays.length
+      firstVisibleDayIndex >= 0 &&
+      lastVisibleDayIndex < allDays.length
     ) {
-      const startDate = allDays[firstVisibleIndex]?.date || "";
-      const endDate = allDays[lastVisibleIndex]?.date || "";
+      const startDate = allDays[firstVisibleDayIndex]?.date || "";
+      const endDate = allDays[lastVisibleDayIndex]?.date || "";
       setVisibleDateRange({ start: startDate, end: endDate });
     }
 
     // Load more when near the start (oldest days)
-    if (firstVisibleIndex < 7 && hasMoreDays) {
+    if (firstVisibleBarIndex < 7 && hasMoreDays) {
       loadMoreDays();
     }
   };
@@ -181,20 +192,28 @@ const Statistics = () => {
 
       // Scroll to show the last 7 days (current week)
       setTimeout(() => {
-        if (scrollViewRef.current && allDays.length > 7) {
-          // Calculate scroll position to show last 7 days
-          const scrollPosition = (allDays.length - 7) * barTotalWidth;
-          scrollViewRef.current.scrollTo({
-            x: scrollPosition,
-            animated: false,
-          });
+        if (scrollViewRef.current) {
+          // Calculate padding that was added to the first week (only if 7+ days old)
+          const totalDays = allDays.length;
+          const firstWeekDays = totalDays % 7 || 7;
+          const paddingNeeded = (totalDays >= 7 && firstWeekDays < 7) ? 7 - firstWeekDays : 0;
+          const totalBarsInChart = allDays.length + paddingNeeded;
+          
+          // Scroll to show the last 7 bars (current week)
+          if (totalBarsInChart > 7) {
+            const scrollPosition = (totalBarsInChart - 7) * barTotalWidth;
+            scrollViewRef.current.scrollTo({
+              x: scrollPosition,
+              animated: false,
+            });
+          }
         }
       }, 100);
     }
   }, [allDays.length]);
 
   // Prepare bar chart data for all days
-  const barData: BarDataItem[] = allDays.map((dailyLog) => {
+  const rawBarData: BarDataItem[] = allDays.map((dailyLog) => {
     const isGoalReached = dailyLog.value >= waterGoal;
     return {
       value: dailyLog.value,
@@ -225,6 +244,24 @@ const Statistics = () => {
       ),
     };
   });
+
+  // If account is less than 7 days old, show days naturally from left (no padding)
+  // If account is 7+ days old and first week is incomplete, add padding to make it complete
+  const totalDays = rawBarData.length;
+  const firstWeekDays = totalDays % 7 || 7; // Days in the first week (1-7)
+  const paddingNeeded = (totalDays >= 7 && firstWeekDays < 7) ? 7 - firstWeekDays : 0;
+  
+  // Add invisible padding bars at the START of the first week (so it grows from the right)
+  const paddingBars: BarDataItem[] = Array(paddingNeeded).fill(null).map(() => ({
+    value: 0,
+    label: '',
+    frontColor: 'transparent',
+  }));
+
+  // Insert padding before the first incomplete week (only if 7+ days old)
+  const barData = paddingNeeded > 0 
+    ? [...paddingBars, ...rawBarData]
+    : rawBarData;
 
   // Process hourly data for line chart with styling
   const lineData = rawHourlyData.map((point, hour) => {
@@ -397,17 +434,14 @@ const Statistics = () => {
                 scrollEventThrottle={16}
                 snapToInterval={snapInterval}
                 decelerationRate="fast"
-                contentContainerStyle={{
-                  paddingLeft: allDays.length < 7 ? 0 : undefined,
-                  paddingRight: allDays.length >= 7 ? 0 : undefined,
-                }}
               >
                 <BarChart
+                  key={allDays.map(d => `${d.date}-${d.value}`).join(',')}
                   barWidth={barWidth}
                   maxValue={chartMax}
                   stepValue={chartMax}
                   noOfSections={1}
-                  initialSpacing={0}
+                  initialSpacing={allDays.length < 7 ? scale(10) : 0}
                   endSpacing={0}
                   spacing={scale(10.5)}
                   hideRules
