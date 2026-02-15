@@ -228,7 +228,19 @@ Your health and hydration data is stored securely in your Appwrite backend. The 
 
 ## 📄 License
 
-This project is private and proprietary.
+This project was created as an educational school project and is made publicly available for learning and inspiration purposes.
+
+**Permissions:**
+- ✅ Personal use
+- ✅ Educational use
+- ✅ Modification for learning purposes
+- ✅ Use as reference or inspiration for similar projects
+- ❌ Commercial use
+
+**Attribution:**
+If you use this project as a reference or inspiration for your own work, we appreciate attribution by linking back to this repository.
+
+For any questions about usage rights, please open an issue in the repository.
 
 ## 🐛 Troubleshooting
 
