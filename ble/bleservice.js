@@ -176,7 +176,6 @@ function startScan(onData, onStatusChange) {
             );
             await Promise.race([writePromise, timeoutPromise]);
           } catch (err) {
-            console.error('⚠️ CCCD write failed:', err.message);
           }
 
           if (onStatusChange) onStatusChange('Connected - Receiving data');
@@ -225,6 +224,14 @@ function startScan(onData, onStatusChange) {
         });
     }
   });
+}
+
+/**
+ * Check if device is currently connected
+ * @returns {boolean}
+ */
+export function isDeviceConnected() {
+  return connectedDevice !== null;
 }
 
 /**

@@ -117,6 +117,7 @@ int stableCount = 0;
 unsigned long droppedStateTime = 0;
 
 bool systemEnabled = true;
+bool justTurnedOn = false;
 
 // Thresholds
 const float DROP_THRESHOLD = 5.0;   // ≈ 0 g
@@ -195,6 +196,10 @@ void handlePowerButton() {
       systemEnabled = newState;
       Serial.println(systemEnabled ? "System ON" : "System OFF");
       state = IDLE;  // reset state machine
+      if (systemEnabled) {
+        justTurnedOn = true;  // Mark that device was just turned on
+        Serial.println("Device turned on - will update baseline on next stable reading");
+      }
     }
   }
 }
@@ -296,6 +301,17 @@ void loop() {
       }
 
       if (stableCount >= STABLE_SAMPLES) {
+        // Check if device was just turned on - update baseline without sending event
+        if (justTurnedOn) {
+          Serial.print("Device just turned on - updating baseline to: ");
+          Serial.print(lastStableWeight);
+          Serial.println("g (no event sent)");
+          baselineWeight = lastStableWeight;
+          justTurnedOn = false;
+          state = IDLE;
+          break;
+        }
+
         float diff = lastStableWeight - baselineWeight;
 
         // If baseline is very low (< 50g), this is initial bottle placement

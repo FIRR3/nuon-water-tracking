@@ -1,9 +1,10 @@
+import { isDeviceConnected } from "@/ble/bleservice";
 import ScreenBackgroundWrapper from "@/components/ScreenBackgroundWrapper";
 import Section from "@/components/Section";
 import SettingsRow from "@/components/SettingsRow";
 import { useTheme } from "@/components/ThemeContext";
 import ToggleButton from "@/components/ToggleButton";
-import { AppIcons } from "@/constants/icon";
+import { AppIcons, UIIcons } from "@/constants/icon";
 import { useNetworkState } from "@/hooks/useNetworkState";
 import { useUserStore } from "@/hooks/useUserStore";
 import {
@@ -43,6 +44,22 @@ const Settings = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [permissionStatus, setPermissionStatus] =
     useState<string>("checking...");
+  const [bleConnected, setBleConnected] = useState(false);
+
+  // Check BLE connection status periodically
+  useEffect(() => {
+    const checkBleConnection = () => {
+      setBleConnected(isDeviceConnected());
+    };
+    
+    // Initial check
+    checkBleConnection();
+    
+    // Check every 2 seconds
+    const interval = setInterval(checkBleConnection, 2000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Load notification settings and check permissions on mount
   useEffect(() => {
@@ -193,11 +210,31 @@ const Settings = () => {
         contentContainerStyle={{
           paddingHorizontal: scale(20),
           paddingBottom: scale(130),
+          paddingTop: scale(55),
           display: "flex",
           gap: scale(35),
         }}
       >
-        <Section rounded className="mt-8 gap-[1px]">
+        {/* BLE Connection Status */}
+        <View className="absolute right-6 mt-8 rounded-xl flex-row items-center gap-2 items-center">
+          {bleConnected ? (
+            <>
+              <UIIcons.checked size={20} />
+              <Text className="text-light-primary dark:text-dark-primary text-sm font-poppins-light">
+                Water bottle connected
+              </Text>
+            </>
+          ) : (
+            <>
+              <View className="w-[20px] h-[20px] rounded-full border-2 border-light-primary/30 dark:border-white/30" />
+              <Text className="text-light-primary/60 dark:text-white/60 text-sm font-poppins-light">
+                Water bottle not connected
+              </Text>
+            </>
+          )}
+        </View>
+
+        <Section rounded className="gap-[1px]">
           <SettingsRow showHR>
             <Text
               numberOfLines={1}
