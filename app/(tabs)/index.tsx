@@ -17,10 +17,13 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  Alert,
   Dimensions,
+  Platform,
   RefreshControl,
   ScrollView,
   Text,
+  ToastAndroid,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -29,11 +32,36 @@ import { useUserStore } from "../../hooks/useUserStore";
 interface WaterAdjustModalProps {
   onClose: () => void;
   onSave: (value: number) => void;
+  currentTotal: number;
 }
 
-function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
+function WaterAdjustModal({ onClose, onSave, currentTotal }: WaterAdjustModalProps) {
   const [selectedValue, setSelectedValue] = useState(0);
   const { colors } = useTheme();
+
+  // Check if removing water would make total go below 0
+  const wouldGoBelowZero = (currentTotal + selectedValue - 50) < 0;
+
+  const handleDecrement = () => {
+    if (wouldGoBelowZero) {
+      // Show toast notification
+      if (Platform.OS === 'android') {
+        ToastAndroid.show(
+          "Cannot remove more water than consumed today",
+          ToastAndroid.SHORT
+        );
+      } else {
+        // iOS fallback - brief alert
+        Alert.alert(
+          "Cannot go below 0ml",
+          "You can't remove more water than you've consumed today.",
+          [{ text: "OK" }]
+        );
+      }
+      return;
+    }
+    setSelectedValue((prev) => prev - 50);
+  };
 
   return (
     <View className="bg-light-secondary dark:bg-dark-secondary w-[90%] rounded-3xl overflow-hidden shadow-2xl border border-light-primary/5 dark:border-white/5">
@@ -44,9 +72,14 @@ function WaterAdjustModal({ onClose, onSave }: WaterAdjustModalProps) {
 
         <View className="flex flex-row justify-between items-center">
           <TouchableOpacity
-            onPress={() => setSelectedValue((prev) => prev - 50)}
+            onPress={handleDecrement}
+            disabled={wouldGoBelowZero}
+            style={{ opacity: wouldGoBelowZero ? 0.3 : 1 }}
           >
-            <UIIcons.remove color={constantColors.accent} size={30} />
+            <UIIcons.remove 
+              color={wouldGoBelowZero ? "#999" : constantColors.accent} 
+              size={30} 
+            />
           </TouchableOpacity>
 
           <Text className="text-center text-light-primary dark:text-dark-primary text-[50px] font-poppins-medium">
@@ -193,6 +226,23 @@ export default function Index() {
 
   const updateWaterIntake = async (value: number) => {
     try {
+      // Validate that we won't go below 0
+      if (currentWaterIntake + value < 0) {
+        if (Platform.OS === 'android') {
+          ToastAndroid.show(
+            "Cannot remove more water than consumed today",
+            ToastAndroid.SHORT
+          );
+        } else {
+          Alert.alert(
+            "Invalid Amount",
+            "Cannot remove more water than you've consumed today.",
+            [{ text: "OK" }]
+          );
+        }
+        return;
+      }
+
       if (value !== 0) {
         // Use cloud storage via useUserStore
         const result = await addWaterIntakeToCloud(value, "manual");
@@ -275,6 +325,7 @@ export default function Index() {
         <Modal isOpen={modalOpen} onRequestClose={() => setModalOpen(false)}>
           <WaterAdjustModal
             onClose={() => setModalOpen(false)}
+            currentTotal={currentWaterIntake}
             onSave={(value) => {
               updateWaterIntake(value);
               setModalOpen(false);

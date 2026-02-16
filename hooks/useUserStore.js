@@ -263,6 +263,13 @@ export const useUserStore = create((set, get) => ({
     // Ensure amount is an integer
     const intAmount = Math.round(amount);
     
+    // Validate that we won't go below 0
+    if (totalToday + intAmount < 0) {
+      console.warn('⚠️ Attempted to reduce water intake below 0, capping at 0');
+      // Cap at current total (so we reach exactly 0)
+      return await get().addWaterIntake(-totalToday, source);
+    }
+    
     // Get current water goal
     const currentGoal = healthProfile?.customWaterGoal || recommendedIntake || 2400;
     
