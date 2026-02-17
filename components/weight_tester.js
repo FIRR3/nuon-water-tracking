@@ -2,14 +2,19 @@
 import { parseWeight, scanAndConnect } from '@/ble/bleservice.js';
 import { useUserStore } from '@/hooks/useUserStore';
 import { useKeepAwake } from 'expo-keep-awake';
-import { useEffect, useState } from 'react';
-import { Alert, PermissionsAndroid, Platform, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, AppState, PermissionsAndroid, Platform, View } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
 
 export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
   const [currentWeight, setCurrentWeight] = useState(0);
   const [status, setStatus] = useState('Initializing...');
   const { addWaterIntake } = useUserStore();
+  
+  // Track app state and buffer data received while in background
+  const appState = useRef(AppState.currentState);
+  const backgroundDataBuffer = useRef([]);
+  const isProcessingBuffer = useRef(false);
 
   useKeepAwake();
 
@@ -19,6 +24,55 @@ export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
       onStatusChange(status);
     }
   }, [status]); // Remove onStatusChange from dependencies
+
+  // Process any data that was buffered while app was in background
+  const processBackgroundBuffer = useCallback(async () => {
+    if (isProcessingBuffer.current || backgroundDataBuffer.current.length === 0) {
+      return;
+    }
+
+    isProcessingBuffer.current = true;
+    console.log(`Processing ${backgroundDataBuffer.current.length} buffered entries`);
+
+    const buffer = [...backgroundDataBuffer.current];
+    backgroundDataBuffer.current = [];
+
+    for (const grams of buffer) {
+      try {
+        await addWaterIntake(grams, 'bluetooth');
+        console.log(`Saved buffered entry: ${grams}ml`);
+      } catch (error) {
+        console.error('Error saving buffered entry:', error);
+        // Re-buffer if save failed
+        backgroundDataBuffer.current.push(grams);
+      }
+    }
+
+    isProcessingBuffer.current = false;
+  }, [addWaterIntake]);
+
+  // Monitor app state changes (background/foreground)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      const previousState = appState.current;
+      appState.current = nextAppState;
+
+      // App came to foreground from background
+      if (previousState.match(/inactive|background/) && nextAppState === 'active') {
+        console.log('App came to foreground - processing buffered data');
+        processBackgroundBuffer();
+      }
+
+      // App going to background
+      if (previousState === 'active' && nextAppState.match(/inactive|background/)) {
+        console.log('App going to background - will buffer incoming data');
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [processBackgroundBuffer]);
 
   const requestPermissions = async () => {
     if (Platform.OS === 'android') {
@@ -94,16 +148,22 @@ export default function WeightScreen({ onUpdateTotal, onStatusChange }) {
           const grams = parseWeight(data);
           setCurrentWeight(grams);
 
-          // Save to cloud storage via useUserStore
-          try {
-            await addWaterIntake(grams, 'bluetooth');
-            
-            // No need to notify parent - store will trigger re-renders
-          } catch (error) {
-            console.error('Error saving water intake to cloud:', error);
-            // Don't fail the BLE connection on cloud save errors
-            // The offline queue will retry later
+          // CRITICAL FIX FOR iOS BACKGROUND:
+          // Check if app is in background - if so, buffer the data
+          const currentAppState = appState.current;
+          
+          if (Platform.OS === 'ios' && currentAppState !== 'active') {
+            // App is in background - buffer the data
+            console.log(`App in background, buffering ${grams}ml`);
+            backgroundDataBuffer.current.push(grams);
+            return;
           }
+
+          // App is in foreground - save immediately
+          // Fire and forget to prevent blocking BLE
+          addWaterIntake(grams, 'bluetooth').catch((error) => {
+            console.error('Error saving water intake (will retry):', error);
+          });
         },
         (status) => {
           if (!isMounted) return;
