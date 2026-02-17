@@ -138,6 +138,10 @@ npx expo run:ios
 ```
 
 ## 📦 Building for Production
+1. Run the following command to create a production build on ios:
+```bash
+npx expo run:ios --configuration Release
+````
 
 ### Using EAS Build (Recommended)
 

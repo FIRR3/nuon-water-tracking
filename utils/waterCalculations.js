@@ -20,7 +20,7 @@ export function calculateRecommendedWaterIntake({
   customGoal = null
 }) {
   // If user has set a custom goal, use that
-  if (customGoal) {
+  if (customGoal !== null && customGoal !== undefined) {
     return customGoal;
   }
 
@@ -42,12 +42,12 @@ export function calculateRecommendedWaterIntake({
   if (age < 12) {
     // Children have higher water needs relative to body weight
     ageMultiplier = 1.2;
-  } else if (age >= 12 && age < 18) {
+  } else if (age < 18) {
     // Teenagers (active growth period)
     ageMultiplier = 1.1;
   } else if (age >= 65) {
-    // Elderly may need slightly less, but still important
-    ageMultiplier = 0.95;
+    // Elderly need a base amount
+    ageMultiplier = 1.0;
   }
   // Adults 18-64 stay at 1.0
 

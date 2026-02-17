@@ -73,8 +73,8 @@ export default function RootLayout() {
 
     return () => {
       // Restore original handler on cleanup
-      // @ts-ignore
       if (originalHandler) {
+        // @ts-ignore
         global.ErrorUtils?.setGlobalHandler(originalHandler);
       }
     };

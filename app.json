@@ -4,7 +4,7 @@
     "slug": "nuon-water-tracking",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icons/icon2.png",
+    "icon": "./assets/icons/icon.png",
     "scheme": "nuonwatertracking",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
