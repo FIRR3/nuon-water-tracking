@@ -20,9 +20,7 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to your water tracking device to automatically log your water intake.",
         "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to connect to your water tracking device to automatically log your water intake.",
-        "UIBackgroundModes": [
-          "bluetooth-central"
-        ]
+        "UIBackgroundModes": ["bluetooth-central"]
       }
     },
     "android": {
@@ -51,13 +49,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./local/assets/notification_icon.png",
           "color": "#ffffff",
           "defaultChannel": "default",
-          "sounds": [
-            "./local/assets/notification_sound.wav",
-            "./local/assets/notification_sound_other.wav"
-          ],
           "enableBackgroundRemoteNotifications": false
         }
       ],
