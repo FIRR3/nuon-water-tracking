@@ -51,13 +51,13 @@ const Settings = () => {
     const checkBleConnection = () => {
       setBleConnected(isDeviceConnected());
     };
-    
+
     // Initial check
     checkBleConnection();
-    
+
     // Check every 2 seconds
     const interval = setInterval(checkBleConnection, 2000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -112,10 +112,11 @@ const Settings = () => {
                   await setNotificationsEnabled(true);
 
                   Alert.alert(
-                    "Reminders Enabled",
-                    "You'll receive daily reminders at:\n\n" +
-                      "• 11:00 AM\n" +
-                      "• 5:00 PM",
+                    "Smart Reminders Enabled",
+                    "You'll receive personalized hydration check-ins at:\n\n" +
+                      "• 10:00 AM\n" +
+                      "• 2:00 PM\n" +
+                      "• 6:00 PM",
                     [{ text: "Got it" }],
                   );
                 } else {
@@ -149,8 +150,8 @@ const Settings = () => {
       );
     } else if (success && newValue) {
       Alert.alert(
-        "Reminders Enabled",
-        "You'll receive daily reminders to drink more water!",
+        "Smart Reminders Enabled",
+        "You'll receive personalized hydration check-ins at 10 AM, 2 PM, and 6 PM.",
         [{ text: "Got it" }],
       );
     } else if (success && !newValue) {
@@ -350,7 +351,7 @@ const Settings = () => {
             </Text>
           </SettingsRow>
         </Section>
-        
+
         {/* Sync Status Section - Only show when offline AND has pending items */}
         {!isOnline && totalPending > 0 && (
           <Section rounded title="Sync Status">

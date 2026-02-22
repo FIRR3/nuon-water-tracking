@@ -7,6 +7,7 @@ import {
   waterIntakeAPI,
 } from "../services/appwriteService";
 import { dailySummariesOfflineService } from "../services/dailySummariesOfflineService";
+import { refreshNotifications } from "../services/notifications";
 import { offlineEditsService } from "../services/offlineEditsService";
 import {
   getHealthProfile,
@@ -330,6 +331,9 @@ export const useUserStore = create((set, get) => ({
       // Refresh today's summary from cache
       const summary = await getTodaysSummary(authUser.$id);
       set({ todaySummary: summary });
+
+      // Refresh notification content with updated intake data
+      refreshNotifications().catch(() => {});
 
       return newLog;
     } catch (error) {
