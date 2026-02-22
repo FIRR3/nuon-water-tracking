@@ -216,7 +216,7 @@ const Settings = () => {
         }}
       >
         {/* BLE Connection Status */}
-        <View className="absolute right-6 mt-8 rounded-xl flex-row items-center gap-2 items-center">
+        <View className="absolute right-6 mt-8 rounded-xl flex-row items-center gap-2">
           {bleConnected ? (
             <>
               <UIIcons.checked size={20} />

@@ -138,9 +138,16 @@ npx expo run:ios
 ```
 
 ## 📦 Building for Production
+0. Make sure to create prebuild and have pods installed in the ios folder:
+```bash
+npx expo prebuild --platform ios
+cd ios
+pod install
+cd ..
+```
 1. Run the following command to create a production build on ios:
 ```bash
-npx expo run:ios --configuration Release
+npx expo run:ios --device --configuration Release
 ````
 
 ### Using EAS Build (Recommended)

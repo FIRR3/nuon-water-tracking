@@ -120,10 +120,21 @@ bool systemEnabled = true;
 bool justTurnedOn = false;
 
 // Thresholds
-const float DROP_THRESHOLD = 5.0;   // ≈ 0 g
-const float STABLE_DELTA   = 1.0;   // ±1 g
-const int   STABLE_SAMPLES = 8;
-const float MIN_DELTA = 3.0;
+const float DROP_THRESHOLD = 5.0;    // ≈ 0 g (bottle lifted)
+const float STABLE_DELTA   = 1.0;    // ±1 g considered stable
+const int   STABLE_SAMPLES = 8;      // ~0.8s of stability
+const float MIN_DELTA      = 3.0;    // ignore < 3g changes
+const float MAX_DRINK      = 500.0;  // max reasonable single drink (ml ≈ g)
+const unsigned long DROPPED_TIMEOUT_MS = 300000;  // 5 min timeout for DROPPED state (refill, forgot to put back, etc.)
+
+// ===================== DRIFT COMPENSATION ===========
+unsigned long lastIdleTime = 0;            // last time we were IDLE with bottle on
+unsigned long lastDriftCheckTime = 0;      // last drift compensation check
+const unsigned long DRIFT_CHECK_INTERVAL = 300000;  // check every 5 minutes
+const unsigned long IDLE_STABLE_TIME = 60000;       // bottle must be still for 1 min
+float idleReadings[5];                     // ring buffer for idle drift detection
+int idleReadingIndex = 0;
+int idleReadingCount = 0;
 
 // ===================== BLE KEEP-ALIVE ===============
 void ensureBLEAdvertising() {
@@ -132,6 +143,70 @@ void ensureBLEAdvertising() {
     pServer->startAdvertising();
   }
   oldDeviceConnected = deviceConnected;
+}
+
+// ===================== DRIFT COMPENSATION ===========
+// Gradually adjusts baseline when bottle sits undisturbed for a long time.
+// This counteracts HX711 thermal drift and load cell creep that builds up
+// over hours/days of continuous operation.
+void checkDriftCompensation(float mass) {
+  unsigned long now = millis();
+
+  // Only check in IDLE state with bottle on the scale
+  if (state != IDLE || mass < DROP_THRESHOLD) {
+    lastIdleTime = 0;
+    idleReadingCount = 0;
+    return;
+  }
+
+  // Track how long we've been idle
+  if (lastIdleTime == 0) {
+    lastIdleTime = now;
+  }
+
+  // Only run drift check at intervals
+  if ((now - lastDriftCheckTime) < DRIFT_CHECK_INTERVAL) {
+    return;
+  }
+  lastDriftCheckTime = now;
+
+  // Bottle has been sitting still long enough
+  if ((now - lastIdleTime) >= IDLE_STABLE_TIME) {
+    // Collect idle readings into ring buffer
+    idleReadings[idleReadingIndex] = mass;
+    idleReadingIndex = (idleReadingIndex + 1) % 5;
+    if (idleReadingCount < 5) idleReadingCount++;
+
+    // Need at least 3 readings to detect drift
+    if (idleReadingCount >= 3) {
+      // Check if all recent idle readings are consistent (low variance)
+      float sum = 0;
+      for (int i = 0; i < idleReadingCount; i++) sum += idleReadings[i];
+      float avg = sum / idleReadingCount;
+
+      float maxDeviation = 0;
+      for (int i = 0; i < idleReadingCount; i++) {
+        float dev = abs(idleReadings[i] - avg);
+        if (dev > maxDeviation) maxDeviation = dev;
+      }
+
+      // Readings are consistent (within ±2g) — this is real drift, not noise
+      if (maxDeviation < 2.0f) {
+        float driftAmount = avg - baselineWeight;
+
+        // Only correct small drift (< 20g), large changes are real events
+        if (abs(driftAmount) > 1.0f && abs(driftAmount) < 20.0f) {
+          Serial.print("[DRIFT] Compensating drift of ");
+          Serial.print(driftAmount);
+          Serial.print("g. Baseline: ");
+          Serial.print(baselineWeight);
+          Serial.print(" -> ");
+          baselineWeight = avg;
+          Serial.println(baselineWeight);
+        }
+      }
+    }
+  }
 }
 
 // ===================== BLE SEND =====================
@@ -260,12 +335,17 @@ void loop() {
   }
 
   float mass = readMass();
+
+  // Drift compensation — adjust baseline for HX711 thermal/creep drift
+  checkDriftCompensation(mass);
   
   // Debug output (reduce spam)
   static int printCounter = 0;
   if (printCounter++ % 10 == 0) {
     Serial.print("Mass: ");
     Serial.print(mass);
+    Serial.print("g, Baseline: ");
+    Serial.print(baselineWeight);
     Serial.print("g, State: ");
     Serial.println(state == IDLE ? "IDLE" : (state == DROPPED ? "DROPPED" : "STABILIZING"));
   }
@@ -276,6 +356,8 @@ void loop() {
       if (mass < DROP_THRESHOLD) {
         state = DROPPED;
         droppedStateTime = 0;
+        lastIdleTime = 0;      // reset drift tracking
+        idleReadingCount = 0;
       }
       break;
 
@@ -289,7 +371,27 @@ void loop() {
         stableCount = 0;
         state = STABILIZING;
         droppedStateTime = 0;
-      } 
+      }
+      // TIMEOUT: If stuck in DROPPED for too long (e.g. bottle removed permanently,
+      // or HX711 drift caused a false trigger), reset to IDLE.
+      // Update baseline to current reading to recover from drift.
+      else if ((millis() - droppedStateTime) > DROPPED_TIMEOUT_MS) {
+        Serial.println("[TIMEOUT] Stuck in DROPPED state, resetting to IDLE");
+        Serial.print("[TIMEOUT] Current mass: ");
+        Serial.print(mass);
+        Serial.println("g");
+        
+        // If something is on the scale, update baseline
+        if (mass > DROP_THRESHOLD) {
+          baselineWeight = mass;
+          Serial.print("[TIMEOUT] Updated baseline to: ");
+          Serial.print(baselineWeight);
+          Serial.println("g");
+        }
+        
+        state = IDLE;
+        droppedStateTime = 0;
+      }
       break;
 
     case STABILIZING:
@@ -331,13 +433,24 @@ void loop() {
           // Negative diff = weight decreased (drinking) -> send data
           // Positive diff = weight increased (refilling) -> just update baseline
           if (diff < 0) {
-            Serial.println("Detected: Drinking");
-            if (deviceConnected) {
-              Serial.println("[BLE] Device connected, sending data...");
-              send_ble_value(-diff);
+            float drinkAmount = -diff;
+            
+            // SANITY CHECK: reject unreasonably large values (drift artifact)
+            if (drinkAmount > MAX_DRINK) {
+              Serial.print("[SANITY] Rejected drink of ");
+              Serial.print(drinkAmount);
+              Serial.print("g (exceeds max ");
+              Serial.print(MAX_DRINK);
+              Serial.println("g). Likely drift — updating baseline only.");
             } else {
-              Serial.println("[BLE] Device NOT connected, storing data...");
-              storeEvent(-diff);
+              Serial.println("Detected: Drinking");
+              if (deviceConnected) {
+                Serial.println("[BLE] Device connected, sending data...");
+                send_ble_value(drinkAmount);
+              } else {
+                Serial.println("[BLE] Device NOT connected, storing data...");
+                storeEvent(drinkAmount);
+              }
             }
           } else {
             Serial.println("Detected: Refilling (updating baseline only)");

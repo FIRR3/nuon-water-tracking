@@ -109,11 +109,7 @@ export default function SignupScreen() {
           firstName: trimmedFirstName,
           lastName: trimmedLastName,
           email: trimmedEmail,
-          birthday: new Date(
-            date.getFullYear(),
-            date.getMonth(),
-            date.getDate(),
-          ).toISOString(),
+          birthday: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}T12:00:00.000Z`,
           hasCompletedOnboarding: false, // Track onboarding status
         },
       );

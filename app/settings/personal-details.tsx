@@ -14,7 +14,13 @@ const PersonalDetails = () => {
 
   let currentWeight = healthProfile?.weight || 0;
   let height = healthProfile?.height || 0;
-  let dateOfBirth = userProfile?.birthday?.split("T")[0] || "N/A";
+  // Extract YYYY-MM-DD from ISO string and format as DD/MM/YYYY for display
+  let dateOfBirth = "N/A";
+  if (userProfile?.birthday) {
+    const datePart = userProfile.birthday.split("T")[0]; // "YYYY-MM-DD"
+    const [year, month, day] = datePart.split("-");
+    dateOfBirth = `${parseInt(day)}/${parseInt(month)}/${year}`;
+  }
   let gender = healthProfile?.gender || "N/A";
   let activityLevel = healthProfile?.activityLevel || "N/A";
 

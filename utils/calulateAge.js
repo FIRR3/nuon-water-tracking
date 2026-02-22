@@ -4,16 +4,25 @@
  * @returns {number} Age in years
  */
 export function calculateAge(birthday) {
-  const birthDate = new Date(birthday);
+  // Parse the date part only (YYYY-MM-DD) to avoid timezone shifting
+  // This handles both "YYYY-MM-DD" and "YYYY-MM-DDT12:00:00.000Z" formats
+  const datePart = birthday.split("T")[0]; // "YYYY-MM-DD"
+  const [birthYear, birthMonth, birthDay] = datePart.split("-").map(Number);
+
   const today = new Date();
-  
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth() + 1; // getMonth() is 0-indexed
+  const todayDay = today.getDate();
+
+  let age = todayYear - birthYear;
+
   // Adjust if birthday hasn't occurred yet this year
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+  if (
+    todayMonth < birthMonth ||
+    (todayMonth === birthMonth && todayDay < birthDay)
+  ) {
     age--;
   }
-  
+
   return age;
 }
