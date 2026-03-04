@@ -46,14 +46,7 @@
       "expo-router",
       "expo-dev-client",
       "expo-web-browser",
-      [
-        "expo-notifications",
-        {
-          "color": "#ffffff",
-          "defaultChannel": "default",
-          "enableBackgroundRemoteNotifications": false
-        }
-      ],
+
       [
         "expo-build-properties",
         {
@@ -70,7 +63,8 @@
           "modes": ["peripheral", "central"],
           "bluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to your water tracking device to automatically log your water intake."
         }
-      ]
+      ],
+      "./plugins/withoutPushEntitlement"
     ],
     "experiments": {
       "typedRoutes": true,
