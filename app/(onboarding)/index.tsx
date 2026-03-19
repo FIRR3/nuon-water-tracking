@@ -159,7 +159,7 @@ export default function OnboardingScreen() {
       <ScreenBackgroundWrapper>
         <View className="flex-1 justify-center items-center p-5">
           <Animated.View entering={FadeInUp.duration(2000).springify()}>
-            <Text className="text-white text-center text-[50px] font-poppins">
+            <Text className="text-light-primary dark:text-white text-center text-[50px] font-poppins">
               Welcome to
             </Text>
           </Animated.View>
@@ -202,9 +202,9 @@ export default function OnboardingScreen() {
           >
             <TouchableOpacity
               onPress={() => setStep(2)}
-              className="border-2 border-white p-3 w-full rounded-2xl flex-row justify-center items-center gap-3"
+              className="border-2 border-light-primary dark:border-white p-3 w-full rounded-2xl flex-row justify-center items-center gap-3"
             >
-              <Text className="text-white font-poppins text-lg text-center">
+              <Text className="text-light-primary dark:text-white font-poppins text-lg text-center">
                 Start
               </Text>
               <UIIcons.arrowUpRight size={24} />
@@ -221,14 +221,14 @@ export default function OnboardingScreen() {
         <KeyboardAvoidingView className="flex-1 justify-center p-5">
           <Animated.Text
             entering={FadeInUp.duration(1000).springify()}
-            className="text-white text-[50px] font-poppins mb-10"
+            className="text-light-primary dark:text-white text-[50px] font-poppins mb-10"
           >
             Personal Info
             <Underline1 width={320} height={20} />
           </Animated.Text>
           <Animated.Text
             entering={FadeInUp.delay(100).duration(1000).springify()}
-            className="text-white font-poppins text-sm mb-4"
+            className="text-light-primary dark:text-white font-poppins text-sm mb-4"
           >
             We need some info to customize your water recommendation
           </Animated.Text>
@@ -330,7 +330,7 @@ export default function OnboardingScreen() {
                           <Text
                             className={`text-center text-md font-poppins ${
                               tempGender === ""
-                                ? "text-white font-poppins-semibold"
+                                ? "text-light-primary dark:text-white font-poppins-semibold"
                                 : "text-gray-500"
                             }`}
                           >
@@ -346,7 +346,7 @@ export default function OnboardingScreen() {
                           <Text
                             className={`text-center text-md font-poppins ${
                               tempGender === "Male"
-                                ? "text-white font-poppins-semibold"
+                                ? "text-light-primary dark:text-white font-poppins-semibold"
                                 : "text-gray-500"
                             }`}
                           >
@@ -362,7 +362,7 @@ export default function OnboardingScreen() {
                           <Text
                             className={`text-center text-md font-poppins ${
                               tempGender === "Female"
-                                ? "text-white font-poppins-semibold"
+                                ? "text-light-primary dark:text-white font-poppins-semibold"
                                 : "text-gray-500"
                             }`}
                           >
@@ -383,9 +383,9 @@ export default function OnboardingScreen() {
                     <View className="flex-row gap-3 p-6 pt-4">
                       <TouchableOpacity
                         onPress={cancelGender}
-                        className="flex-1 border-2 border-light-secondary py-3 px-4 rounded-xl"
+                        className="flex-1 border-2 border-dark-secondary dark:border-light-secondary py-3 px-4 rounded-xl"
                       >
-                        <Text className="text-white text-center text-md font-poppins-medium">
+                        <Text className="text-light-primary dark:text-white text-center text-md font-poppins-medium">
                           Cancel
                         </Text>
                       </TouchableOpacity>
@@ -393,7 +393,7 @@ export default function OnboardingScreen() {
                         onPress={confirmGender}
                         className="flex-1 bg-light-accent dark:bg-dark-accent py-3 px-4 rounded-xl"
                       >
-                        <Text className="text-white text-center text-md font-poppins-medium">
+                        <Text className="text-light-primary dark:text-white text-center text-md font-poppins-medium">
                           Confirm
                         </Text>
                       </TouchableOpacity>
@@ -410,9 +410,9 @@ export default function OnboardingScreen() {
               >
                 <TouchableOpacity
                   onPress={toggleGenderPicker}
-                  className="flex-1 border-2 border-light-secondary py-[10px] px-4 rounded-xl"
+                  className="flex-1 border-2 border-dark-secondary dark:border-light-secondary py-[10px] px-4 rounded-xl"
                 >
-                  <Text className="text-white text-center text-md font-poppins-medium">
+                  <Text className="text-light-primary dark:text-white text-center text-md font-poppins-medium">
                     Cancel
                   </Text>
                 </TouchableOpacity>
@@ -420,7 +420,7 @@ export default function OnboardingScreen() {
                   onPress={confirmGender}
                   className="flex-1 bg-light-accent dark:bg-dark-accent py-[12px] px-4 rounded-xl"
                 >
-                  <Text className="text-white text-center text-md font-poppins-medium">
+                  <Text className="text-light-primary dark:text-white text-center text-md font-poppins-medium">
                     Confirm
                   </Text>
                 </TouchableOpacity>
@@ -459,7 +459,7 @@ export default function OnboardingScreen() {
                   className="absolute border-2 border-white p-3 w-[90%] rounded-2xl flex-row justify-center items-center gap-3"
                 >
                   <UIIcons.arrowDownLeft size={24} />
-                  <Text className="text-white font-poppins text-lg text-center">
+                  <Text className="text-light-primary dark:text-white font-poppins text-lg text-center">
                     Back
                   </Text>
                 </TouchableOpacity>
@@ -502,13 +502,13 @@ export default function OnboardingScreen() {
         <KeyboardAvoidingView className="flex-1 justify-center p-5">
           <Animated.Text
             entering={FadeInUp.duration(1000).springify()}
-            className="text-white text-[50px] font-poppins mb-5 text-center"
+            className="text-light-primary dark:text-white text-[50px] font-poppins mb-5 text-center"
           >
             Lifestyle
           </Animated.Text>
           <Animated.Text
             entering={FadeInUp.delay(100).duration(1000).springify()}
-            className="text-white font-poppins text-sm"
+            className="text-light-primary dark:text-white font-poppins text-sm"
           >
             What is your average activity level?
           </Animated.Text>
@@ -556,10 +556,10 @@ export default function OnboardingScreen() {
           >
             <TouchableOpacity
               onPress={() => setStep(2)}
-              className="absolute border-2 border-white p-3 w-[90%] rounded-2xl flex-row justify-center items-center gap-3"
+              className="absolute border-2 border-light-primary dark:border-white p-3 w-[90%] rounded-2xl flex-row justify-center items-center gap-3"
             >
               <UIIcons.arrowDownLeft size={24} />
-              <Text className="text-white font-poppins text-lg text-center">
+              <Text className="text-light-primary dark:text-white font-poppins text-lg text-center">
                 Back
               </Text>
             </TouchableOpacity>
